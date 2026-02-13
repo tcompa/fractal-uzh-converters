@@ -1,94 +1,132 @@
 """Utility functions for Olympus ScanR data."""
 
+import logging
 import re
-from logging import getLogger
-from pathlib import Path
-from typing import Any
+from typing import Literal, NamedTuple
 
 import numpy as np
-from ngio import PixelSize
+import polars
 from ome_types import from_xml
 from ome_zarr_converters_tools import (
-    OriginDict,
-    PlatePathBuilder,
-    Point,
+    AcquisitionDetails,
+    ChannelInfo,
+    ConverterOptions,
+    DefaultImageLoader,
+    ImageInPlate,
     Tile,
     TiledImage,
+    default_axes_builder,
+    join_url_paths,
+    tiles_aggregation_pipeline,
 )
-from ome_zarr_converters_tools._microplate_utils import wellid_to_row_column
-from tifffile import imread
+from pydantic import field_validator
 
-logger = getLogger(__name__)
+from fractal_uzh_converters.common import (
+    STANDARD_ROWS_NAMES,
+    BaseAcquisitionModel,
+    get_attributes_from_condition_table,
+)
 
+AVAILABLE_PLATE_LAYOUTS = Literal["24-well", "48-well", "96-well", "384-well"]
+STANDARD_PLATES_LAYOUTS: dict[AVAILABLE_PLATE_LAYOUTS, dict[str, int]] = {
+    "24-well": {
+        "rows": 4,
+        "columns": 6,
+    },
+    "48-well": {
+        "rows": 6,
+        "columns": 8,
+    },
+    "96-well": {
+        "rows": 8,
+        "columns": 12,
+    },
+    "384-well": {
+        "rows": 16,
+        "columns": 24,
+    },
+}
 
-class TiffLoader:
-    """Load a full tile from a list of tiff images."""
-
-    def __init__(self, image: Any, data_dir: Path, shapes: dict[str, int]):
-        """Initialize the TiffLoader."""
-        self.image = image
-        self.data_dir = data_dir / "data"
-        self.shapes = shapes
-
-    @property
-    def dtype(self) -> "str":
-        """Return the dtype of the tiff files."""
-        first_acq = self.image.pixels.tiff_data_blocks[0]
-        im = imread(self.data_dir / first_acq.uuid.file_name)
-        return str(im.dtype)
-
-    def load(self) -> np.ndarray:
-        """Return the full tile."""
-        first_acq = self.image.pixels.tiff_data_blocks[0]
-        im = imread(self.data_dir / first_acq.uuid.file_name)
-
-        if im.ndim != 2:
-            raise ValueError("Only 2D tiff files are currently supported.")
-
-        shape_y, shape_x = im.shape
-        if shape_y != self.shapes["y"] or shape_x != self.shapes["x"]:
-            raise ValueError(
-                "Tiff file shape does not match the expected "
-                "shape from the OME metadata."
-            )
-
-        tile_shape = (
-            self.shapes["t"],
-            self.shapes["c"],
-            self.shapes["z"],
-            self.shapes["y"],
-            self.shapes["x"],
-        )
-        full_tile = np.zeros(shape=tile_shape, dtype=self.dtype)
-        full_tile[first_acq.first_t, first_acq.first_z, first_acq.first_c] = im
-
-        for tif in self.image.pixels.tiff_data_blocks[1:]:
-            try:
-                im = imread(self.data_dir / tif.uuid.file_name)
-            except FileNotFoundError:
-                logger.warning(
-                    f"Tiff tile not found: {self.data_dir / tif.uuid.file_name}"
-                )
-                continue
-            except Exception as e:
-                logger.error(f"Error loading tiff tile: {e}")
-                continue
-
-            full_tile[tif.first_t, tif.first_c, tif.first_z] = im
-
-        return full_tile
+logger = logging.getLogger(__name__)
 
 
-def _get_channel_names(image, default_channels: list[str] | None) -> list[str]:
-    parsed_channels = [channel.name for channel in image.pixels.channels]
-    if default_channels is None:
-        return parsed_channels
-    if len(parsed_channels) != len(default_channels):
+class ScanRAcquisitionModel(BaseAcquisitionModel):
+    """Acquisition details for the Olympus ScanR microscope data.
+
+    Attributes:
+        path: Path to the acquisition directory.
+            For scanr, this should be the base directory of the acquisition
+            or the "{acquisition_dir}/data" directory containing the metadata.ome.xml
+            file and the "data" directory with the tiff files.
+        plate_name: Optional custom name for the plate. If not provided, the name will
+            be the acquisition directory name.
+        acquisition_id: Acquisition ID,
+            used to identify the acquisition in case of multiple acquisitions.
+        layout: Plate layout type.
+        advanced: Advanced acquisition options.
+    """
+
+    layout: AVAILABLE_PLATE_LAYOUTS = "96-well"
+
+    @field_validator("path", mode="before")
+    def validate_path(cls, v):
+        """Make the path more flexible.
+
+        Allow:
+         - path/to/acquisition/data
+         - path/to/acquisition/
+        """
+        v = v.rstrip("/")
+        if v.endswith("/data"):
+            return v[: -len("/data")]
+        return v
+
+
+def _wellid_to_row_column(
+    well_id: int, layout: AVAILABLE_PLATE_LAYOUTS
+) -> tuple[str, int]:
+    """Get row and column from well id."""
+    layout_dict = STANDARD_PLATES_LAYOUTS[layout]
+    num_columns = layout_dict["columns"]
+    well_id -= 1
+
+    row = well_id // num_columns
+    column = well_id % num_columns + 1
+
+    if row >= layout_dict["rows"]:
+        raise ValueError(f"Well id {well_id} is out of bounds for layout {layout}.")
+
+    row_str = STANDARD_ROWS_NAMES[row]
+    return row_str, column
+
+
+def _extract_well_position_id(
+    s: str, layout: AVAILABLE_PLATE_LAYOUTS
+) -> tuple[tuple[str, int], int]:
+    """Extract Well and Position information from a string."""
+    pattern = r"W(\d+)P(\d+)"
+    match = re.search(pattern, s)
+    if match:
+        w_id, p = match.groups()
+        w_id, p = int(w_id), int(p)
+        row, col = _wellid_to_row_column(w_id, layout)
+        return (row, col), p
+    else:
         raise ValueError(
-            "Number of channels in the OME metadata does not match "
-            "the number of default channels."
+            f"Could not extract Well and Position information from string: {s}"
         )
-    return default_channels
+
+
+def _get_channel_names(image) -> list[str] | None:
+    try:
+        parsed_channels = [channel.name for channel in image.pixels.channels]
+        if all(name is not None for name in parsed_channels):
+            return parsed_channels  # type: ignore[return-value]
+        else:
+            return None
+    except Exception as e:
+        logger.warning(f"Could not parse channel names: {e}")
+        return None
 
 
 def _get_z_spacing(image) -> float:
@@ -107,151 +145,203 @@ def _get_z_spacing(image) -> float:
     return delta_z[0]
 
 
-def _get_tiles_shapes(image) -> dict[str, int]:
-    return {
-        "t": image.pixels.size_t,
-        "c": image.pixels.size_c,
-        "z": image.pixels.size_z,
-        "y": image.pixels.size_y,
-        "x": image.pixels.size_x,
-    }
+def _mean_z_spacing(list_images) -> float:
+    z_spacings = []
+    for image in list_images:
+        z_spacing = _get_z_spacing(image)
+        z_spacings.append(z_spacing)
+    mean_z_spacing = float(np.mean(z_spacings))
+    return mean_z_spacing
 
 
-def tile_from_ome_image(
-    image, data_dir: Path, scale_xy: float | None = None, scale_z: float | None = None
-) -> Tile:
-    """Create a Tile object from an OME image."""
-    size_z, size_c, size_t = (
-        image.pixels.size_z,
-        image.pixels.size_c,
-        image.pixels.size_t,
-    )
+def _is_time_series(image) -> bool:
+    """Check if the images represent a time series."""
+    time_points = {plane.the_t for plane in image.pixels.planes}
+    return len(time_points) > 1
 
-    physical_size_x = scale_xy or image.pixels.physical_size_x or 1
-    physical_size_y = scale_xy or image.pixels.physical_size_y or 1
-    physical_size_z = scale_z or _get_z_spacing(image)
 
-    if physical_size_x != physical_size_y:
-        raise ValueError("Physical size x and y are not equal. This is not supported.")
-
-    pixel_size = PixelSize(
-        x=physical_size_x,
-        y=physical_size_y,
-        z=physical_size_z,
-    )
-    length_x_physical = pixel_size.x * image.pixels.size_x
-    length_y_physical = pixel_size.y * image.pixels.size_y
-
-    # find top_l point
-    top_l = None
-    bot_r = None
-    top_l_z_real = None
-    top_l_t_real = None
-    for plane in image.pixels.planes:
-        # find top_l point
-        if plane.the_z == 0 and plane.the_c == 0 and plane.the_t == 0:
-            x = plane.position_x or 0
-            y = plane.position_y or 0
-            top_l = Point(x=x, y=y, z=0, t=0, c=0)
-            top_l_z_real = plane.position_z or 0
-            top_l_t_real = plane.delta_t or 0
-
-        if (
-            plane.the_z == size_z - 1
-            and plane.the_c == size_c - 1
-            and plane.the_t == size_t - 1
-        ):
-            x = plane.position_x or 0
-            y = plane.position_y or 0
-            x += length_x_physical
-            y += length_y_physical
-            z = size_z * pixel_size.z
-            bot_r = Point(x=x, y=y, z=z, t=size_t, c=size_c)
-
-    tiff_loader = TiffLoader(
-        image=image, data_dir=data_dir, shapes=_get_tiles_shapes(image)
-    )
-
-    if top_l is None or top_l_t_real is None or top_l_z_real is None:
-        raise ValueError("Could not find top left point in the ScanR image metadata.")
-    if bot_r is None:
-        raise ValueError(
-            "Could not find bottom right point in the ScanR image metadata."
+def build_acquisition_details(
+    image_meta,
+    acquisition_model: ScanRAcquisitionModel,
+    is_time_series: bool,
+    z_spacing: float,
+) -> AcquisitionDetails:
+    """Build AcquisitionDetails from AcquisitionInputModel."""
+    pixelsize_x = image_meta.pixels.physical_size_x or 1
+    pixelsize_y = image_meta.pixels.physical_size_y or 1
+    if not np.isclose(pixelsize_x, pixelsize_y):
+        logger.warning(
+            f"Physical size x ({pixelsize_x}) and y ({pixelsize_y}) are not equal. "
+            "Using x size for pixelsize."
         )
 
-    origin = OriginDict(
-        x_micrometer_original=top_l.x,
-        y_micrometer_original=top_l.y,
-        z_micrometer_original=top_l_z_real,
+    channel_names = _get_channel_names(image_meta)
+    channels = None
+    if channel_names is not None:
+        channels = [ChannelInfo(channel_label=name) for name in channel_names]
+
+    axes = default_axes_builder(is_time_series=is_time_series)
+    acquisition_detail = AcquisitionDetails(
+        pixelsize=pixelsize_x,
+        z_spacing=z_spacing,
+        t_spacing=1,
+        channels=channels,
+        axes=axes,
+        start_x_coo="world",
+        length_x_coo="pixel",
+        start_y_coo="world",
+        length_y_coo="pixel",
+        start_z_coo="pixel",
+        length_z_coo="pixel",
+        start_t_coo="pixel",
+        length_t_coo="pixel",
     )
-
-    tile = Tile.from_points(
-        top_l,
-        bot_r,
-        pixel_size=pixel_size,
-        origin=origin,
-        data_loader=tiff_loader,
+    # Update with advanced options
+    acquisition_detail = acquisition_model.advanced.update_acquisition_details(
+        acquisition_details=acquisition_detail
     )
-    return tile
+    return acquisition_detail
 
 
-def extract_well_position_id(s: str) -> tuple[int, int]:
-    """Extract Well and Position information from a string."""
-    pattern = r"W(\d+)P(\d+)"
-    match = re.search(pattern, s)
-    if match:
-        w, p = match.groups()
-        w, p = int(w), int(p)
-        return w, p
-    else:
-        raise ValueError(
-            f"Could not extract Well and Position information from string: {s}"
+class PlaneInfo(NamedTuple):
+    """Information about a single plane in the image."""
+
+    x: float
+    y: float
+    z: float
+    c: int
+    t: int
+    tiff_path: str
+
+
+def _match_tiff_to_plane(tiff_data_block: list, planes: list) -> list:
+    tiff_blocks_dict = {}
+    for tiff in tiff_data_block:
+        key = (tiff.first_t, tiff.first_c, tiff.first_z)
+        tiff_blocks_dict[key] = tiff
+    planes_dict = {}
+    for plane in planes:
+        key = (plane.the_t, plane.the_c, plane.the_z)
+        planes_dict[key] = plane
+    matched = []
+    for key in planes_dict:
+        assert key in tiff_blocks_dict, f"Could not find matching TIFF for plane {key}"
+        matched.append(
+            PlaneInfo(
+                x=planes_dict[key].position_x or 0.0,
+                y=planes_dict[key].position_y or 0.0,
+                z=planes_dict[key].the_z,
+                c=planes_dict[key].the_c,
+                t=planes_dict[key].the_t,
+                tiff_path=tiff_blocks_dict[key].uuid.file_name,
+            )
         )
+    return matched
+
+
+def _build_tiles(
+    image_meta,
+    acquisition_model: ScanRAcquisitionModel,
+    mean_z_spacing: float,
+    condition_table: polars.DataFrame | None,
+) -> list[Tile]:
+    """Build individual Tile objects for each image record."""
+    (row, column), pos_id = _extract_well_position_id(
+        image_meta.id, layout=acquisition_model.layout
+    )
+    image_in_plate = ImageInPlate(
+        plate_name=acquisition_model.normalized_plate_name,
+        row=row,
+        column=column,
+        acquisition=acquisition_model.acquisition_id,
+    )
+    is_time_series = _is_time_series(image_meta)
+    acquisition_details = build_acquisition_details(
+        image_meta=image_meta,
+        acquisition_model=acquisition_model,
+        is_time_series=is_time_series,
+        z_spacing=mean_z_spacing,
+    )
+    tiles = []
+    len_x = image_meta.pixels.size_x
+    len_y = image_meta.pixels.size_y
+    pixels = image_meta.pixels
+
+    matched_planes = _match_tiff_to_plane(
+        tiff_data_block=pixels.tiff_data_blocks,
+        planes=pixels.planes,
+    )
+    base_tiff_dir = join_url_paths(acquisition_model.path, "data")
+    attributes = get_attributes_from_condition_table(
+        condition_table=condition_table,
+        row=row,
+        column=column,
+        acquisition=acquisition_model.acquisition_id,
+    )
+
+    for plane_info in matched_planes:
+        tiff_path = join_url_paths(base_tiff_dir, plane_info.tiff_path)
+        # ScanR stage is in "standard" cartesian coordinates, but
+        # for images we want to set the origin (as many viewers do) in the top-left
+        # corner, so we need to invert the y position
+        # This is equivalent to flipping the image along the y axis
+        pos_x = plane_info.x or 0.0
+        pos_y = -(plane_info.y or 0.0)
+        _tile = Tile(
+            fov_name=f"FOV_{pos_id}",
+            start_x=pos_x,
+            length_x=len_x,
+            start_y=pos_y,
+            length_y=len_y,
+            start_z=plane_info.z,
+            length_z=1,
+            start_c=plane_info.c,
+            length_c=1,
+            start_t=plane_info.t,
+            length_t=1,
+            collection=image_in_plate,
+            image_loader=DefaultImageLoader(file_path=tiff_path),
+            acquisition_details=acquisition_details,
+            attributes=attributes,
+        )
+        tiles.append(_tile)
+    return tiles
 
 
 def parse_scanr_metadata(
-    data_dir: Path,
-    acq_id: int,
-    plate_name: str,
-    plate_layout: str = "96-well",
-    channel_names: list[str] | None = None,
-    channel_wavelengths: list[str] | None = None,
-) -> dict[str, TiledImage]:
+    *,
+    acquisition_model: ScanRAcquisitionModel,
+    converter_options: ConverterOptions,
+) -> list[TiledImage]:
     """Parse ScanR metadata and return a dictionary of TiledImages."""
-    metadata_path = data_dir / "data" / "metadata.ome.xml"
-    if not metadata_path.exists():
-        raise FileNotFoundError(f"Metadata file not found: {metadata_path}")
-    meta = from_xml(metadata_path)
+    acquisition_dir = acquisition_model.path
+    metadata_path = join_url_paths(acquisition_dir, "data", "metadata.ome.xml")
+    try:
+        meta = from_xml(metadata_path)
+    except Exception as e:
+        raise ValueError(
+            f"Could not parse OME-XML metadata file: {metadata_path}"
+        ) from e
 
-    channel_names = _get_channel_names(meta.images[0], default_channels=channel_names)
-    if channel_wavelengths is not None:
-        if len(channel_names) != len(channel_wavelengths):
-            raise ValueError(
-                "Number of channels in the OME metadata does not match "
-                "the number of channel wavelengths."
-            )
+    if len(meta.images) == 0:
+        raise ValueError(f"No images found in metadata file: {metadata_path}")
 
-    tiled_images = {}
+    condition_table = acquisition_model.get_condition_table()
+    mean_z_spacing = _mean_z_spacing(meta.images)
+    tiles = []
     for image in meta.images:
-        well_id, pos_id = extract_well_position_id(image.id)
-        well_acq_id = f"{well_id}_{acq_id}"
-
-        tile = tile_from_ome_image(image, data_dir)
-
-        if well_acq_id not in tiled_images:
-            row, column = wellid_to_row_column(well_id, plate_layout)
-            name = image.name if image.name else f"{well_id}/{pos_id}"
-            plate_path_builder = PlatePathBuilder(
-                plate_name=plate_name,
-                row=row,
-                column=column,
-                acquisition_id=acq_id,
-            )
-            tiled_images[well_acq_id] = TiledImage(
-                name=name,
-                path_builder=plate_path_builder,
-                channel_names=channel_names,
-                wavelength_ids=channel_wavelengths,
-            )
-        tiled_images[well_acq_id].add_tile(tile)
+        _tiles = _build_tiles(
+            image_meta=image,
+            acquisition_model=acquisition_model,
+            mean_z_spacing=mean_z_spacing,
+            condition_table=condition_table,
+        )
+        tiles.extend(_tiles)
+    tiled_images = tiles_aggregation_pipeline(
+        tiles=tiles,
+        converter_options=converter_options,
+        filters=acquisition_model.advanced.filters,
+        validators=None,
+        resource=None,  # No resource context needed here
+    )
     return tiled_images

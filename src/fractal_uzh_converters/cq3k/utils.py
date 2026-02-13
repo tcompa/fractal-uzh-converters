@@ -1,84 +1,55 @@
 """Utility functions for Yokogawa CQ3K data."""
 
-from logging import getLogger
-from pathlib import Path
+import logging
 from typing import Annotated, Any, Literal
 
 import numpy as np
 import xmltodict
-from ngio import PixelSize
-from ome_zarr_converters_tools import PlatePathBuilder, Point, Tile, TiledImage, Vector
+from ome_zarr_converters_tools import (
+    AcquisitionDetails,
+    AttributeType,
+    ConverterOptions,
+    DefaultImageLoader,
+    ImageInPlate,
+    Tile,
+    TiledImage,
+    default_axes_builder,
+    join_url_paths,
+    tiles_aggregation_pipeline,
+)
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_pascal
-from tifffile import imread
 
-logger = getLogger(__name__)
+from fractal_uzh_converters.common import (
+    STANDARD_ROWS_NAMES,
+    BaseAcquisitionModel,
+    get_attributes_from_condition_table,
+)
+
+logger = logging.getLogger(__name__)
 
 
-class CQ3KTiffLoader:
-    """Load a full tile from a list of tiff images."""
+######################################################################
+#
+# Acquisition Input Model
+#
+######################################################################
 
-    def __init__(
-        self,
-        image: list["ImageMeasurementRecord"],
-        data_dir: Path,
-        shapes: dict[str, int],
-        channel_map: dict[int, int],
-    ):
-        """Initialize the TiffLoader."""
-        self.image = image
-        self.data_dir = data_dir
-        self.shapes = shapes
-        self.channel_map = channel_map
 
-    @property
-    def dtype(self) -> "str":
-        """Return the dtype of the tiff files."""
-        first_acq = self.image[0].value
-        im = imread(self.data_dir / first_acq)
-        return str(im.dtype)
+class CQ3KAcquisitionModel(BaseAcquisitionModel):
+    """Acquisition details for the CQ3K microscope data.
 
-    def load(self) -> np.ndarray:
-        """Return the full tile."""
-        first_acq = self.image[0]
-        im = imread(self.data_dir / first_acq.value)
+    Attributes:
+        path: Path to the acquisition directory.
+            Should contain MeasurementData.mlf and MeasurementDetail.mrf files.
+        plate_name: Optional custom name for the plate. If not provided, the name will
+            be the acquisition directory name.
+        acquisition_id: Acquisition ID,
+            used to identify the acquisition in case of multiple acquisitions.
+        advanced: Advanced acquisition options.
+    """
 
-        if im.ndim != 2:
-            raise ValueError("Only 2D tiff files are currently supported.")
-
-        shape_y, shape_x = im.shape
-        if shape_y != self.shapes["y"] or shape_x != self.shapes["x"]:
-            raise ValueError(
-                "Tiff file shape does not match the expected "
-                "shape from the OME metadata."
-            )
-
-        tile_shape = (
-            self.shapes["t"],
-            self.shapes["c"],
-            self.shapes["z"],
-            self.shapes["y"],
-            self.shapes["x"],
-        )
-        full_tile = np.zeros(shape=tile_shape, dtype=self.dtype)
-        ch_index = self.channel_map[first_acq.ch]
-        full_tile[first_acq.time_point - 1, ch_index, first_acq.z_index - 1] = im
-
-        for tif in self.image[1:]:
-            try:
-                im = imread(self.data_dir / tif.value)
-            except FileNotFoundError:
-                logger.warning(f"Tiff tile not found: {self.data_dir / tif.value}")
-                continue
-            except Exception as e:
-                logger.error(f"Error loading tiff tile: {e}")
-                continue
-
-            full_tile[tif.time_point - 1, self.channel_map[tif.ch], tif.z_index - 1] = (
-                im
-            )
-
-        return full_tile
+    pass
 
 
 ######################################################################
@@ -90,6 +61,8 @@ class CQ3KTiffLoader:
 
 
 class Base(BaseModel):
+    """Base model with common configuration."""
+
     model_config = ConfigDict(
         alias_generator=to_pascal,
         extra="forbid",
@@ -97,6 +70,8 @@ class Base(BaseModel):
 
 
 class MeasurementRecordBase(Base):
+    """Base class for measurement records."""
+
     time: str
     column: int
     row: int
@@ -109,6 +84,8 @@ class MeasurementRecordBase(Base):
 
 
 class ImageMeasurementRecord(MeasurementRecordBase):
+    """Image measurement record."""
+
     type: Literal["IMG"]
     tile_x_index: int | None = None
     tile_y_index: int | None = None
@@ -124,10 +101,14 @@ class ImageMeasurementRecord(MeasurementRecordBase):
 
 
 class ErrorMeasurementRecord(MeasurementRecordBase):
+    """Error measurement record."""
+
     type: Literal["ERR"]
 
 
 class MeasurementData(Base):
+    """Measurement data containing image and error records."""
+
     xmlns: Annotated[dict, Field(alias="xmlns")]
     version: Literal["1.0"]
     measurement_record: list[ImageMeasurementRecord | ErrorMeasurementRecord] | None = (
@@ -136,12 +117,16 @@ class MeasurementData(Base):
 
 
 class MeasurementSamplePlate(Base):
+    """Measurement sample plate details."""
+
     name: str
     well_plate_file_name: str
     well_plate_product_file_name: str
 
 
 class MeasurementChannel(Base):
+    """Measurement channel details."""
+
     ch: int
     horizontal_pixel_dimension: float
     vertical_pixel_dimension: float
@@ -159,6 +144,8 @@ class MeasurementChannel(Base):
 
 
 class MeasurementDetail(Base):
+    """Measurement detail metadata."""
+
     xmlns: Annotated[dict, Field(alias="xmlns")]
     version: Literal["1.0"]
     operator_name: str
@@ -179,160 +166,262 @@ class MeasurementDetail(Base):
     measurement_channel: list[MeasurementChannel] | MeasurementChannel
 
 
-def _parse(path: Path) -> dict[str, Any]:
-    with open(path, encoding="utf-8") as f:
-        return xmltodict.parse(
-            f.read(),
-            process_namespaces=True,
-            namespaces={"http://www.yokogawa.co.jp/BTS/BTSSchema/1.0": None},
-            attr_prefix="",
-            cdata_key="Value",
-        )
+######################################################################
+#
+# XML parsing helpers
+#
+######################################################################
 
 
-def _load_models(path: Path) -> tuple[MeasurementData, MeasurementDetail]:
-    if not path.exists():
-        raise FileNotFoundError(f"{path} does not exist.")
+def _parse(path: str) -> dict[str, Any]:
+    try:
+        with open(path, encoding="utf-8") as f:
+            return xmltodict.parse(
+                f.read(),
+                process_namespaces=True,
+                namespaces={"http://www.yokogawa.co.jp/BTS/BTSSchema/1.0": None},  # type: ignore
+                attr_prefix="",
+                cdata_key="Value",
+            )
+    except FileNotFoundError as e:
+        logger.error(f"File not found: {path}")
+        raise e
+    except Exception as e:
+        logger.error(f"Error parsing XML file {path}: {e}")
+        raise e
 
-    if not path.is_dir():
-        raise ValueError(
-            f"{path} is not a directory. Please provide a directory path containing the"
-            "MeasurementData.mlf, and MeasurementDetail.mrf files."
-        )
-    mlf_dict = _parse(path / "MeasurementData.mlf")
-    mrf_dict = _parse(path / "MeasurementDetail.mrf")
+
+def _load_models(path: str) -> tuple[MeasurementData, MeasurementDetail]:
+    mlf_path = join_url_paths(path, "MeasurementData.mlf")
+    mrf_path = join_url_paths(path, "MeasurementDetail.mrf")
+    mlf_dict = _parse(mlf_path)
+    mrf_dict = _parse(mrf_path)
     mlf = MeasurementData(**mlf_dict["MeasurementData"])
     mrf = MeasurementDetail(**mrf_dict["MeasurementDetail"])
     return mlf, mrf
 
 
-def parse_cq3k_metadata(
-    data_dir: Path,
-    acq_id: int,
-    plate_name: str,
-    channel_names: list[str] | None = None,
-    channel_wavelengths: list[str] | None = None,
-) -> list[TiledImage]:
-    """Parse CQ3K metadata and return a list of TiledImages."""
-    data, detail = _load_models(data_dir)
+######################################################################
+#
+# Helper functions for building tiles (following ScanR pattern)
+#
+######################################################################
 
-    alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    plates_groups = {}
 
-    assert data.measurement_record is not None
-    z_type_keys = set()
-    for img in data.measurement_record:
-        assert isinstance(img, ImageMeasurementRecord)
-        z_type = img.z_image_processing
-        z_type_keys.add(z_type)
+def _get_z_spacing(images: list[ImageMeasurementRecord]) -> float:
+    """Calculate z spacing from image records."""
+    z_positions = sorted({img.z for img in images})
+    if len(z_positions) <= 1:
+        return 1.0
+    delta_z = np.diff(z_positions)
+    if not np.allclose(delta_z, delta_z[0]):
+        logger.warning("Z spacing is not constant, using mean value.")
+    return float(np.mean(delta_z))
 
-        row = alphabet[img.row - 1]
-        key = (z_type, row, img.column)
 
-        if key not in plates_groups:
-            plates_groups[key] = []
-        plates_groups[key].append(img)
+def _is_time_series(images: list[ImageMeasurementRecord]) -> bool:
+    """Check if the images represent a time series."""
+    time_points = {img.time_point for img in images}
+    return len(time_points) > 1
 
+
+def build_acquisition_details(
+    images: list[ImageMeasurementRecord],
+    detail: MeasurementDetail,
+    acquisition_model: CQ3KAcquisitionModel,
+) -> AcquisitionDetails:
+    """Build AcquisitionDetails from CQ3K metadata."""
     if isinstance(detail.measurement_channel, list):
         first_channel = detail.measurement_channel[0]
     else:
         first_channel = detail.measurement_channel
-    pixel_size_x, pixel_size_y = (
-        first_channel.horizontal_pixel_dimension,
-        first_channel.vertical_pixel_dimension,
+
+    pixelsize_x = first_channel.horizontal_pixel_dimension
+    pixelsize_y = first_channel.vertical_pixel_dimension
+
+    if not np.isclose(pixelsize_x, pixelsize_y):
+        logger.warning(
+            f"Physical size x ({pixelsize_x}) and y ({pixelsize_y}) are not equal. "
+            "Using x size for pixelsize."
+        )
+
+    z_spacing = _get_z_spacing(images)
+    is_time_series = _is_time_series(images)
+    axes = default_axes_builder(is_time_series=is_time_series)
+
+    acquisition_detail = AcquisitionDetails(
+        pixelsize=pixelsize_x,
+        z_spacing=z_spacing,
+        t_spacing=1,
+        channels=None,
+        axes=axes,
+        start_x_coo="world",
+        length_x_coo="pixel",
+        start_y_coo="world",
+        length_y_coo="pixel",
+        start_z_coo="pixel",
+        length_z_coo="pixel",
+        start_t_coo="pixel",
+        length_t_coo="pixel",
     )
-    shape_x, shape_y = (first_channel.horizontal_pixels, first_channel.vertical_pixels)
+    # Update with advanced options
+    acquisition_detail = acquisition_model.advanced.update_acquisition_details(
+        acquisition_details=acquisition_detail
+    )
+    return acquisition_detail
 
-    tiled_images = []
-    for z_type in z_type_keys:
-        # Create TiledImages for each well in the plate
-        plates_groups_z_type = {
-            (key[1], key[2]): value
-            for key, value in plates_groups.items()
-            if key[0] == z_type
-        }
-        if z_type is not None and len(z_type_keys) > 1:
-            plate_name_z_type = f"{plate_name}_{z_type}"
-        else:
-            plate_name_z_type = plate_name
 
-        for (row, column), images in plates_groups_z_type.items():
-            tiled_image = TiledImage(
-                name=f"Acq{acq_id}_Well{row}{column}",
-                path_builder=PlatePathBuilder(
-                    plate_name=plate_name_z_type,
-                    row=row,
-                    column=column,
-                    acquisition_id=acq_id,
-                ),
-                channel_names=channel_names,
-                wavelength_ids=channel_wavelengths,
-            )
+def _build_tiles(
+    images: list[ImageMeasurementRecord],
+    data_dir: str,
+    detail: MeasurementDetail,
+    acquisition_model: CQ3KAcquisitionModel,
+    row: str,
+    column: int,
+    fov_idx: int,
+    z_type: str | None,
+    attributes: dict[str, AttributeType],
+) -> list[Tile]:
+    """Build individual Tile objects for each image record."""
+    if isinstance(detail.measurement_channel, list):
+        first_channel = detail.measurement_channel[0]
+    else:
+        first_channel = detail.measurement_channel
 
-            fov_index = {img.field_index for img in images}
+    len_x = first_channel.horizontal_pixels
+    len_y = first_channel.vertical_pixels
 
-            for fov_idx in fov_index:
-                imgs = [img for img in images if img.field_index == fov_idx]
-                z = np.unique([img.z for img in imgs])
-                if len(z) == 1:
-                    z_spacing = 1.0
-                else:
-                    # Add check for uniform spacing
-                    z_spacing = float(z[1] - z[0])
+    acquisition_details = build_acquisition_details(
+        images=images,
+        detail=detail,
+        acquisition_model=acquisition_model,
+    )
 
-                pixel_size = PixelSize(
-                    x=pixel_size_x,
-                    y=pixel_size_y,
-                    z=z_spacing,
-                    t=1,
-                    space_unit="micrometer",
-                )
+    # Get plate name, handling z_type suffix if needed
+    plate_name = acquisition_model.normalized_plate_name
+    if z_type is not None:
+        plate_name = f"{plate_name}_{z_type}"
 
-                t = [img.time_point for img in imgs]
-                c = [img.ch for img in imgs]
+    image_in_plate = ImageInPlate(
+        plate_name=plate_name,
+        row=row,
+        column=column,
+        acquisition=acquisition_model.acquisition_id,
+    )
 
-                # Channels are not necessarily sequentially numbered
-                # And may start from an arbitrary number
-                unique_c = sorted(set(c))
-                channel_map = {ch: idx for idx, ch in enumerate(unique_c)}
+    fov_name = f"FOV_{fov_idx}"
 
-                z = [img.z_index for img in imgs]
-                x = [img.x for img in imgs]
-                y = [img.y for img in imgs]
-                top_l = Point(x=min(x), y=min(y), z=0, c=0, t=0)
-                diag = Vector(
-                    x=shape_x * pixel_size.x,
-                    y=shape_y * pixel_size.y,
-                    z=len(set(z)),
-                    c=len(set(c)),
-                    t=len(set(t)),
-                )
-                shape_tile = (
-                    len(set(t)),
-                    len(set(c)),
-                    len(set(z)),
-                    shape_y,
-                    shape_x,
-                )
-                tile = Tile(
-                    top_l=top_l,
-                    diag=diag,
-                    pixel_size=pixel_size,
-                    shape=shape_tile,
-                    data_loader=CQ3KTiffLoader(
-                        image=imgs,
-                        data_dir=data_dir,
-                        shapes={
-                            "t": shape_tile[0],
-                            "c": shape_tile[1],
-                            "z": shape_tile[2],
-                            "y": shape_tile[3],
-                            "x": shape_tile[4],
-                        },
-                        channel_map=channel_map,
-                    ),
-                )
-                tiled_image.add_tile(tile)
+    tiles = []
+    for img in images:
+        tiff_path = join_url_paths(data_dir, img.value)
+        # CQ3k stage is in "standard" cartesian coordinates, but
+        # for images we want to set the origin (as many viewers do) in the top-left
+        # corner, so we need to invert the y position
+        # This is equivalent to flipping the image along the y axis
+        pos_x = img.x
+        pos_y = -img.y
 
-            tiled_images.append(tiled_image)
+        _tile = Tile(
+            fov_name=fov_name,
+            start_x=pos_x,
+            length_x=len_x,
+            start_y=pos_y,
+            length_y=len_y,
+            start_z=img.z_index - 1,  # Convert to 0-indexed
+            length_z=1,
+            start_c=img.ch,
+            length_c=1,
+            start_t=img.time_point - 1,  # Convert to 0-indexed
+            length_t=1,
+            collection=image_in_plate,
+            image_loader=DefaultImageLoader(file_path=tiff_path),
+            acquisition_details=acquisition_details,
+            attributes=attributes,
+        )
+        tiles.append(_tile)
+
+    return tiles
+
+
+######################################################################
+#
+# Main metadata parsing function
+#
+######################################################################
+
+
+def parse_cq3k_metadata(
+    *,
+    acquisition_model: CQ3KAcquisitionModel,
+    converter_options: ConverterOptions,
+) -> list[TiledImage]:
+    """Parse CQ3K metadata and return a list of TiledImages.
+
+    Args:
+        acquisition_model: Acquisition input model containing path and options.
+        converter_options: Converter options for tile processing.
+
+    Returns:
+        List of TiledImage objects ready for conversion.
+    """
+    acquisition_dir = acquisition_model.path
+    data, detail = _load_models(path=acquisition_dir)
+    condition_table = acquisition_model.get_condition_table()
+
+    if data.measurement_record is None:
+        raise ValueError(f"No measurement records found in {acquisition_dir}")
+
+    # Group images by z_type, well (row, column), and field of view
+    plates_groups: dict[
+        tuple[str | None, str, int, int], list[ImageMeasurementRecord]
+    ] = {}
+
+    for record in data.measurement_record:
+        if not isinstance(record, ImageMeasurementRecord):
+            continue
+
+        z_type = record.z_image_processing
+        row = STANDARD_ROWS_NAMES[record.row - 1]
+        column = record.column
+        fov_idx = record.field_index
+
+        key = (z_type, row, column, fov_idx)
+
+        if key not in plates_groups:
+            plates_groups[key] = []
+        plates_groups[key].append(record)
+
+    # Build tiles for each group
+    all_tiles = []
+    for (z_type, row, column, fov_idx), images in plates_groups.items():
+        attributes = get_attributes_from_condition_table(
+            condition_table=condition_table,
+            row=row,
+            column=column,
+            acquisition=acquisition_model.acquisition_id,
+        )
+        _tiles = _build_tiles(
+            images=images,
+            data_dir=acquisition_dir,
+            detail=detail,
+            acquisition_model=acquisition_model,
+            row=row,
+            column=column,
+            fov_idx=fov_idx,
+            z_type=z_type,
+            attributes=attributes,
+        )
+        all_tiles.extend(_tiles)
+
+    logger.info(f"Built {len(all_tiles)} tiles from {acquisition_dir}")
+
+    # Use preprocessing pipeline to combine tiles into TiledImages
+    tiled_images = tiles_aggregation_pipeline(
+        tiles=all_tiles,
+        converter_options=converter_options,
+        filters=acquisition_model.advanced.filters,
+        validators=None,
+        resource=None,  # No resource context needed here
+    )
+
     return tiled_images
