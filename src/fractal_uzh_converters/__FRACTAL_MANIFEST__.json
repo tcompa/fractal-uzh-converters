@@ -10,7 +10,7 @@
         "ScanR",
         "Plate converter"
       ],
-      "docs_info": "### Purpose\n\n- Convert images acquired with an Olympus ScanR microscope to a OME-Zarr Plate.\n\n### Outputs\n\n- A OME-Zarr Plate.\n\n### Limitations\n\n- This task has been tested on a limited set of acquisitions. It may not work on all Olympus ScanR acquisitions.\n\n### Expected inputs\n\nThe following directory structure is expected:\n\n```text\n/plate_dir/\n----/data/\n--------/metadata.ome.xml\n--------/B2--W00014--P00001--Z00000--T00000--DAPi.tif\n--------/B2--W00014--P00001--Z00000--T00000--TRITC.tif\n--------/...\n```\n",
+      "docs_info": "### Purpose\n\n- Convert images acquired with an Olympus ScanR microscope to an OME-Zarr Plate.\n\n### Outputs\n\n- An OME-Zarr Plate.\n\n### Limitations\n\n- This task has been tested on a limited set of acquisitions. It may not work on all Olympus ScanR acquisitions.\n- Make sure to set the correct `Layout` for your plate. The well ID mapping depends on it \u2014 using the wrong layout will assign images to incorrect wells.\n\n### Expected inputs\n\nThe following directory structure is expected:\n\n```text\nmy_acquisition/\n\u2514\u2500\u2500 data/\n    \u251c\u2500\u2500 metadata.ome.xml     # OME-XML metadata file (required)\n    \u251c\u2500\u2500 image_001.tiff\n    \u251c\u2500\u2500 image_002.tiff\n    \u2514\u2500\u2500 ...\n```\n\n`Path` can point to either the base directory (`my_acquisition/`) or directly to the `data` subdirectory (`my_acquisition/data/`).\n",
       "type": "converter_compound",
       "executable_non_parallel": "olympus_scanr/convert_scanr_init_task.py",
       "executable_parallel": "common/image_in_plate_compute_task.py",
@@ -948,7 +948,7 @@
         "type": "object",
         "title": "ImageInPlateComputeTask"
       },
-      "docs_link": "https://github.com/fractal-analytics-platform/fractal-uzh-converters"
+      "docs_link": "https://fractal-analytics-platform.github.io/fractal-uzh-converters/stable"
     },
     {
       "name": "Convert Yokogawa CQ3K Plate to OME-Zarr",
@@ -959,7 +959,7 @@
         "CQ3K",
         "Plate converter"
       ],
-      "docs_info": "### Purpose\n\n- Convert images acquired with a Yokogawa CQ3K microscope to a OME-Zarr Plate.\n\n### Outputs\n\n- A OME-Zarr Plate.\n\n### Limitations\n\n- This task has been tested on a limited set of acquisitions. It may not work on all Yokogawa CQ3K acquisitions.\n\n### Expected inputs\n\nThe following directory structure is expected:\n\n```text\n/plate_dir/\n----/MeasurementData.mlf\n----/MeasurementDetail.mrf\n----/Image/\n--------/W0000F0001T0001Z000C1.tif\n----/Projection/ (optional)\n--------/W0000F0001T0001Z000C1.tif\n```",
+      "docs_info": "### Purpose\n\n- Convert images acquired with a Yokogawa CQ3K / CellVoyager microscope to an OME-Zarr Plate.\n\n### Outputs\n\n- An OME-Zarr Plate.\n- If the acquisition contains multiple Z-image processing types (e.g., `focus`, `maximum_projection`), a separate plate is created for each type.\n\n### Limitations\n\n- This task has been tested on a limited set of acquisitions. It may not work on all Yokogawa CQ3K acquisitions.\n\n### Expected inputs\n\nThe following directory structure is expected:\n\n```text\nmy_acquisition/\n\u251c\u2500\u2500 MeasurementData.mlf      # Image measurement records (required)\n\u251c\u2500\u2500 MeasurementDetail.mrf    # Acquisition details and channel info (required)\n\u2514\u2500\u2500 <subdirectories>/\n    \u251c\u2500\u2500 image_001.tif\n    \u2514\u2500\u2500 ...\n```\n\nThe TIFF file paths are referenced inside `MeasurementData.mlf` and can be in subdirectories relative to the acquisition directory.\n",
       "type": "converter_compound",
       "executable_non_parallel": "cq3k/convert_cq3k_init_task.py",
       "executable_parallel": "common/image_in_plate_compute_task.py",
@@ -1885,7 +1885,7 @@
         "type": "object",
         "title": "ImageInPlateComputeTask"
       },
-      "docs_link": "https://github.com/fractal-analytics-platform/fractal-uzh-converters"
+      "docs_link": "https://fractal-analytics-platform.github.io/fractal-uzh-converters/stable"
     },
     {
       "name": "Convert Operetta Plate to OME-Zarr",
@@ -1895,7 +1895,7 @@
         "Operetta",
         "Plate converter"
       ],
-      "docs_info": "### Purpose\n\n- Convert images acquired with a PerkinElmer Operetta microscope to a OME-Zarr Plate.\n\n### Outputs\n\n- A OME-Zarr Plate.\n\n### Limitations\n\n- This task has been tested on a limited set of acquisitions. It may not work on all PerkinElmer Operetta acquisitions.\n\n### Expected inputs\n\nThe following directory structure is expected:\n\n```text\n/plate_dir/\n----/Images/\n--------/Index.idx.xml\n--------/r03c11f01p01-ch1sk1fk1fl1.tiff\n--------/...\n```",
+      "docs_info": "### Purpose\n\n- Convert images acquired with a PerkinElmer Operetta / Opera Phenix microscope to an OME-Zarr Plate.\n\n### Outputs\n\n- An OME-Zarr Plate.\n\n### Limitations\n\n- This task has been tested on a limited set of acquisitions. It may not work on all PerkinElmer Operetta acquisitions.\n\n### Expected inputs\n\nThe following directory structure is expected:\n\n```text\nmy_acquisition/\n\u2514\u2500\u2500 Images/\n    \u251c\u2500\u2500 Index.idx.xml        # Metadata file (required)\n    \u251c\u2500\u2500 r01c01f01p01-ch1sk1fk1fl1.tiff\n    \u251c\u2500\u2500 r01c01f01p01-ch2sk1fk1fl1.tiff\n    \u2514\u2500\u2500 ...\n```\n\n`Path` can point to either the base directory (`my_acquisition/`) or directly to the `Images` subdirectory (`my_acquisition/Images/`).\n",
       "type": "converter_compound",
       "executable_non_parallel": "operetta/convert_operetta_init_task.py",
       "executable_parallel": "common/image_in_plate_compute_task.py",
@@ -2821,7 +2821,7 @@
         "type": "object",
         "title": "ImageInPlateComputeTask"
       },
-      "docs_link": "https://github.com/fractal-analytics-platform/fractal-uzh-converters"
+      "docs_link": "https://fractal-analytics-platform.github.io/fractal-uzh-converters/stable"
     }
   ],
   "has_args_schemas": true,
