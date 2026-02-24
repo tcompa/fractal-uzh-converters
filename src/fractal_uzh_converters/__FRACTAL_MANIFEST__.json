@@ -57,10 +57,16 @@
               },
               "stage_corrections": {
                 "$ref": "#/$defs/StageCorrections",
+                "default": {
+                  "flip_x": false,
+                  "flip_y": false,
+                  "swap_xy": false
+                },
                 "title": "Stage Corrections",
                 "description": "Stage orientation corrections."
               },
               "filters": {
+                "default": [],
                 "items": {
                   "discriminator": {
                     "mapping": {
@@ -171,16 +177,36 @@
               },
               "alignment_correction": {
                 "$ref": "#/$defs/AlignmentCorrections",
+                "default": {
+                  "align_xy": false,
+                  "align_z": false,
+                  "align_t": false
+                },
                 "title": "Alignment Corrections",
                 "description": "Alignment correction options."
               },
               "omezarr_options": {
                 "$ref": "#/$defs/OmeZarrOptions",
+                "default": {
+                  "num_levels": 5,
+                  "chunks": {
+                    "c_chunk": 1,
+                    "mode": "Same as FOV",
+                    "t_chunk": 1,
+                    "xy_scaling": "1",
+                    "z_chunk": 10
+                  },
+                  "ngff_version": "0.4",
+                  "table_backend": "anndata"
+                },
                 "title": "OME-Zarr Options",
                 "description": "Options specific to OME-Zarr writing."
               },
               "temp_json_options": {
                 "$ref": "#/$defs/TempJsonOptions",
+                "default": {
+                  "temp_url": "{zarr_dir}/_tmp_json"
+                },
                 "title": "Temporary JSON Options",
                 "description": "Options for temporary JSON storage."
               }
@@ -318,6 +344,13 @@
                 "description": "Number of resolution levels to create."
               },
               "chunks": {
+                "default": {
+                  "mode": "Same as FOV",
+                  "xy_scaling": "1",
+                  "z_chunk": 10,
+                  "c_chunk": 1,
+                  "t_chunk": 1
+                },
                 "discriminator": {
                   "mapping": {
                     "Fixed Size": "#/$defs/FixedSizeChunking",
@@ -468,6 +501,19 @@
               },
               "advanced": {
                 "$ref": "#/$defs/AcquisitionOptions",
+                "default": {
+                  "channels": null,
+                  "pixel_info": null,
+                  "condition_table_path": null,
+                  "axes": null,
+                  "data_type": null,
+                  "stage_corrections": {
+                    "flip_x": false,
+                    "flip_y": false,
+                    "swap_xy": false
+                  },
+                  "filters": []
+                },
                 "title": "Advanced",
                 "description": "Advanced acquisition options."
               },
@@ -718,16 +764,36 @@
               },
               "alignment_correction": {
                 "$ref": "#/$defs/AlignmentCorrections",
+                "default": {
+                  "align_xy": false,
+                  "align_z": false,
+                  "align_t": false
+                },
                 "title": "Alignment Corrections",
                 "description": "Alignment correction options."
               },
               "omezarr_options": {
                 "$ref": "#/$defs/OmeZarrOptions",
+                "default": {
+                  "num_levels": 5,
+                  "chunks": {
+                    "c_chunk": 1,
+                    "mode": "Same as FOV",
+                    "t_chunk": 1,
+                    "xy_scaling": "1",
+                    "z_chunk": 10
+                  },
+                  "ngff_version": "0.4",
+                  "table_backend": "anndata"
+                },
                 "title": "OME-Zarr Options",
                 "description": "Options specific to OME-Zarr writing."
               },
               "temp_json_options": {
                 "$ref": "#/$defs/TempJsonOptions",
+                "default": {
+                  "temp_url": "{zarr_dir}/_tmp_json"
+                },
                 "title": "Temporary JSON Options",
                 "description": "Options for temporary JSON storage."
               }
@@ -830,6 +896,13 @@
                 "description": "Number of resolution levels to create."
               },
               "chunks": {
+                "default": {
+                  "mode": "Same as FOV",
+                  "xy_scaling": "1",
+                  "z_chunk": 10,
+                  "c_chunk": 1,
+                  "t_chunk": 1
+                },
                 "discriminator": {
                   "mapping": {
                     "Fixed Size": "#/$defs/FixedSizeChunking",
@@ -1006,10 +1079,16 @@
               },
               "stage_corrections": {
                 "$ref": "#/$defs/StageCorrections",
+                "default": {
+                  "flip_x": false,
+                  "flip_y": false,
+                  "swap_xy": false
+                },
                 "title": "Stage Corrections",
                 "description": "Stage orientation corrections."
               },
               "filters": {
+                "default": [],
                 "items": {
                   "discriminator": {
                     "mapping": {
@@ -1098,6 +1177,19 @@
               },
               "advanced": {
                 "$ref": "#/$defs/AcquisitionOptions",
+                "default": {
+                  "channels": null,
+                  "pixel_info": null,
+                  "condition_table_path": null,
+                  "axes": null,
+                  "data_type": null,
+                  "stage_corrections": {
+                    "flip_x": false,
+                    "flip_y": false,
+                    "swap_xy": false
+                  },
+                  "filters": []
+                },
                 "title": "Advanced",
                 "description": "Advanced acquisition options."
               }
@@ -1152,16 +1244,36 @@
               },
               "alignment_correction": {
                 "$ref": "#/$defs/AlignmentCorrections",
+                "default": {
+                  "align_xy": false,
+                  "align_z": false,
+                  "align_t": false
+                },
                 "title": "Alignment Corrections",
                 "description": "Alignment correction options."
               },
               "omezarr_options": {
                 "$ref": "#/$defs/OmeZarrOptions",
+                "default": {
+                  "num_levels": 5,
+                  "chunks": {
+                    "c_chunk": 1,
+                    "mode": "Same as FOV",
+                    "t_chunk": 1,
+                    "xy_scaling": "1",
+                    "z_chunk": 10
+                  },
+                  "ngff_version": "0.4",
+                  "table_backend": "anndata"
+                },
                 "title": "OME-Zarr Options",
                 "description": "Options specific to OME-Zarr writing."
               },
               "temp_json_options": {
                 "$ref": "#/$defs/TempJsonOptions",
+                "default": {
+                  "temp_url": "{zarr_dir}/_tmp_json"
+                },
                 "title": "Temporary JSON Options",
                 "description": "Options for temporary JSON storage."
               }
@@ -1299,6 +1411,13 @@
                 "description": "Number of resolution levels to create."
               },
               "chunks": {
+                "default": {
+                  "mode": "Same as FOV",
+                  "xy_scaling": "1",
+                  "z_chunk": 10,
+                  "c_chunk": 1,
+                  "t_chunk": 1
+                },
                 "discriminator": {
                   "mapping": {
                     "Fixed Size": "#/$defs/FixedSizeChunking",
@@ -1655,16 +1774,36 @@
               },
               "alignment_correction": {
                 "$ref": "#/$defs/AlignmentCorrections",
+                "default": {
+                  "align_xy": false,
+                  "align_z": false,
+                  "align_t": false
+                },
                 "title": "Alignment Corrections",
                 "description": "Alignment correction options."
               },
               "omezarr_options": {
                 "$ref": "#/$defs/OmeZarrOptions",
+                "default": {
+                  "num_levels": 5,
+                  "chunks": {
+                    "c_chunk": 1,
+                    "mode": "Same as FOV",
+                    "t_chunk": 1,
+                    "xy_scaling": "1",
+                    "z_chunk": 10
+                  },
+                  "ngff_version": "0.4",
+                  "table_backend": "anndata"
+                },
                 "title": "OME-Zarr Options",
                 "description": "Options specific to OME-Zarr writing."
               },
               "temp_json_options": {
                 "$ref": "#/$defs/TempJsonOptions",
+                "default": {
+                  "temp_url": "{zarr_dir}/_tmp_json"
+                },
                 "title": "Temporary JSON Options",
                 "description": "Options for temporary JSON storage."
               }
@@ -1767,6 +1906,13 @@
                 "description": "Number of resolution levels to create."
               },
               "chunks": {
+                "default": {
+                  "mode": "Same as FOV",
+                  "xy_scaling": "1",
+                  "z_chunk": 10,
+                  "c_chunk": 1,
+                  "t_chunk": 1
+                },
                 "discriminator": {
                   "mapping": {
                     "Fixed Size": "#/$defs/FixedSizeChunking",
@@ -1942,10 +2088,16 @@
               },
               "stage_corrections": {
                 "$ref": "#/$defs/StageCorrections",
+                "default": {
+                  "flip_x": false,
+                  "flip_y": false,
+                  "swap_xy": false
+                },
                 "title": "Stage Corrections",
                 "description": "Stage orientation corrections."
               },
               "filters": {
+                "default": [],
                 "items": {
                   "discriminator": {
                     "mapping": {
@@ -2056,16 +2208,36 @@
               },
               "alignment_correction": {
                 "$ref": "#/$defs/AlignmentCorrections",
+                "default": {
+                  "align_xy": false,
+                  "align_z": false,
+                  "align_t": false
+                },
                 "title": "Alignment Corrections",
                 "description": "Alignment correction options."
               },
               "omezarr_options": {
                 "$ref": "#/$defs/OmeZarrOptions",
+                "default": {
+                  "num_levels": 5,
+                  "chunks": {
+                    "c_chunk": 1,
+                    "mode": "Same as FOV",
+                    "t_chunk": 1,
+                    "xy_scaling": "1",
+                    "z_chunk": 10
+                  },
+                  "ngff_version": "0.4",
+                  "table_backend": "anndata"
+                },
                 "title": "OME-Zarr Options",
                 "description": "Options specific to OME-Zarr writing."
               },
               "temp_json_options": {
                 "$ref": "#/$defs/TempJsonOptions",
+                "default": {
+                  "temp_url": "{zarr_dir}/_tmp_json"
+                },
                 "title": "Temporary JSON Options",
                 "description": "Options for temporary JSON storage."
               }
@@ -2203,6 +2375,13 @@
                 "description": "Number of resolution levels to create."
               },
               "chunks": {
+                "default": {
+                  "mode": "Same as FOV",
+                  "xy_scaling": "1",
+                  "z_chunk": 10,
+                  "c_chunk": 1,
+                  "t_chunk": 1
+                },
                 "discriminator": {
                   "mapping": {
                     "Fixed Size": "#/$defs/FixedSizeChunking",
@@ -2263,6 +2442,19 @@
               },
               "advanced": {
                 "$ref": "#/$defs/AcquisitionOptions",
+                "default": {
+                  "channels": null,
+                  "pixel_info": null,
+                  "condition_table_path": null,
+                  "axes": null,
+                  "data_type": null,
+                  "stage_corrections": {
+                    "flip_x": false,
+                    "flip_y": false,
+                    "swap_xy": false
+                  },
+                  "filters": []
+                },
                 "title": "Advanced",
                 "description": "Advanced acquisition options."
               }
@@ -2591,16 +2783,36 @@
               },
               "alignment_correction": {
                 "$ref": "#/$defs/AlignmentCorrections",
+                "default": {
+                  "align_xy": false,
+                  "align_z": false,
+                  "align_t": false
+                },
                 "title": "Alignment Corrections",
                 "description": "Alignment correction options."
               },
               "omezarr_options": {
                 "$ref": "#/$defs/OmeZarrOptions",
+                "default": {
+                  "num_levels": 5,
+                  "chunks": {
+                    "c_chunk": 1,
+                    "mode": "Same as FOV",
+                    "t_chunk": 1,
+                    "xy_scaling": "1",
+                    "z_chunk": 10
+                  },
+                  "ngff_version": "0.4",
+                  "table_backend": "anndata"
+                },
                 "title": "OME-Zarr Options",
                 "description": "Options specific to OME-Zarr writing."
               },
               "temp_json_options": {
                 "$ref": "#/$defs/TempJsonOptions",
+                "default": {
+                  "temp_url": "{zarr_dir}/_tmp_json"
+                },
                 "title": "Temporary JSON Options",
                 "description": "Options for temporary JSON storage."
               }
@@ -2703,6 +2915,13 @@
                 "description": "Number of resolution levels to create."
               },
               "chunks": {
+                "default": {
+                  "mode": "Same as FOV",
+                  "xy_scaling": "1",
+                  "z_chunk": 10,
+                  "c_chunk": 1,
+                  "t_chunk": 1
+                },
                 "discriminator": {
                   "mapping": {
                     "Fixed Size": "#/$defs/FixedSizeChunking",
