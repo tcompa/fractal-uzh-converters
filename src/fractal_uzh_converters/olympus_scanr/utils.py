@@ -51,20 +51,7 @@ logger = logging.getLogger(__name__)
 
 
 class ScanRAcquisitionModel(BaseAcquisitionModel):
-    """Acquisition details for the Olympus ScanR microscope data.
-
-    Attributes:
-        path: Path to the acquisition directory.
-            For scanr, this should be the base directory of the acquisition
-            or the "{acquisition_dir}/data" directory containing the metadata.ome.xml
-            file and the "data" directory with the tiff files.
-        plate_name: Optional custom name for the plate. If not provided, the name will
-            be the acquisition directory name.
-        acquisition_id: Acquisition ID,
-            used to identify the acquisition in case of multiple acquisitions.
-        layout: Plate layout type.
-        advanced: Advanced acquisition options.
-    """
+    """Acquisition details for the Olympus ScanR microscope data."""
 
     layout: AVAILABLE_PLATE_LAYOUTS = "96-well"
 

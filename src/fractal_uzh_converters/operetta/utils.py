@@ -38,19 +38,7 @@ logger = logging.getLogger(__name__)
 
 
 class OperettaAcquisitionModel(BaseAcquisitionModel):
-    """Acquisition details for the Operetta microscope data.
-
-    Attributes:
-        path: Path to the acquisition directory.
-            For Operetta, this should be the base directory of the acquisition
-            or the "{acquisition_dir}/Images" directory containing the tiff
-            files and metadata.ome.xml file.
-        plate_name: Optional custom name for the plate. If not provided, the name will
-            be the acquisition directory name.
-        acquisition_id: Acquisition ID,
-            used to identify the acquisition in case of multiple acquisitions.
-        advanced: Advanced acquisition options.
-    """
+    """Acquisition details for the Operetta microscope data."""
 
     @field_validator("path", mode="before")
     def validate_path(cls, v) -> str:

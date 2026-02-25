@@ -24,8 +24,8 @@ authors = [{ name = "Lorenzo Cerrone", email = "lorenzo.cerrone@uzh.ch" }]
 requires-python = ">=3.11,<3.15"
 
 dependencies = [
-    "ome-zarr-converters-tools>=0.7.0,<0.8.0",
-    "fractal-task-tools==0.4.0a3",
+    "ome-zarr-converters-tools@git+https://github.com/tcompa/ome-zarr-converters-tools",
+    "fractal-task-tools==0.4.0a5",
     "ngio>=0.5.3,<0.6.0",
     "zarrs",
     "tqdm",
@@ -131,3 +131,6 @@ docs = { features = ["docs"], solve-group = "default" }
 
 # Required Python version and dependencies
 [tool.pixi.tasks]
+
+[tool.hatch.metadata]
+allow-direct-references=true
