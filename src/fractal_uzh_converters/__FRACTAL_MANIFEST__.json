@@ -28,7 +28,6 @@
             "description": "Acquisition options for conversion.",
             "properties": {
               "channels": {
-                "description": "List of channel information.",
                 "items": {
                   "$ref": "#/$defs/ChannelInfo"
                 },
@@ -37,37 +36,25 @@
               },
               "pixel_info": {
                 "$ref": "#/$defs/PixelSizeModel",
-                "description": "Pixel size information.",
                 "title": "Pixel Size Information"
               },
               "condition_table_path": {
-                "description": "Optional path to a condition table CSV file.",
                 "title": "Condition Table Path",
                 "type": "string"
               },
               "axes": {
-                "description": "Axes to use for the image data, e.g. \"czyx\".",
                 "title": "Axes",
                 "type": "string"
               },
               "data_type": {
                 "$ref": "#/$defs/DataTypeEnum",
-                "description": "Data type of the image data.",
                 "title": "Data Type"
               },
               "stage_corrections": {
                 "$ref": "#/$defs/StageCorrections",
-                "default": {
-                  "flip_x": false,
-                  "flip_y": false,
-                  "swap_xy": false
-                },
-                "description": "Stage orientation corrections.",
                 "title": "Stage Corrections"
               },
               "filters": {
-                "default": [],
-                "description": "List of filters to apply.",
                 "items": {
                   "discriminator": {
                     "mapping": {
@@ -102,19 +89,16 @@
             "properties": {
               "align_xy": {
                 "default": false,
-                "description": "Whether to align the positions in the XY plane by FOV.\nThis addresses minor imprecision that often occurs during\nimage acquisition.",
                 "title": "Align XY",
                 "type": "boolean"
               },
               "align_z": {
                 "default": false,
-                "description": "Whether to align the positions in the Z axis by FOV.\nThis addresses minor imprecision that often occurs during\nimage acquisition.",
                 "title": "Align Z",
                 "type": "boolean"
               },
               "align_t": {
                 "default": false,
-                "description": "Whether to align the positions in the T axis by FOV.\nThis addresses minor imprecision that often occurs during\nimage acquisition.",
                 "title": "Align T",
                 "type": "boolean"
               }
@@ -137,19 +121,16 @@
             "description": "Channel information.",
             "properties": {
               "channel_label": {
-                "description": "Label of the channel.",
                 "title": "Channel Label",
                 "type": "string"
               },
               "wavelength_id": {
-                "description": "The wavelength ID of the channel.\nThis field can be used in some tasks as alternative to channel_label,\ne.g. for multiplexed acquisitions it can be used for applying illumination\ncorrection based on wavelength ID instead of channel name.",
                 "title": "Wavelength Id",
                 "type": "string"
               },
               "colors": {
                 "$ref": "#/$defs/DefaultColors",
                 "default": "Blue (0000FF)",
-                "description": "The color associated with the channel, e.g. for visualization purposes.",
                 "title": "Colors"
               }
             },
@@ -166,48 +147,23 @@
               "tiling_mode": {
                 "$ref": "#/$defs/TilingMode",
                 "default": "Auto",
-                "description": "Tiling mode to use during conversion.\n- Auto: Automatically determine if Snap to Grid is possible,\notherwise use Snap to Corners.\n- Snap to Grid: Tile images to fit a regular grid. This is\nonly possible if image positions align to a grid (potentially with overlap).\n- Snap to Corners: Tile images to fit a grid defined by the corner\npositions.\n- Inplace: Write tiles in their original positions without tiling. This\nmay lead to artifacts if microscope stage positions are not precise.\n- No Tiling: Each field of view is written as a single OME-Zarr.",
                 "title": "Tiling Mode"
               },
               "writer_mode": {
                 "$ref": "#/$defs/WriterMode",
                 "default": "By FOV",
-                "description": "Mode for writing data during conversion.\n- By Tile: Write data one tile at a time. This consumes less memory,\nbut may be slower.\n- By Tile (Using Dask): Write tiles in parallel using Dask. This is\nusually faster than writing by tile sequentially, but may consume more\nmemory.\n- By FOV: Write data one field of view at a time. This may the best\ncompromise between speed and memory usage in most cases.\n- By FOV (Using Dask): Write fields of view in parallel using Dask.\nThis is usually faster than writing by FOV sequentially,\nbut may consume more memory.\n- In Memory: Load all data into memory before writing.",
                 "title": "Writer Mode"
               },
               "alignment_correction": {
                 "$ref": "#/$defs/AlignmentCorrections",
-                "default": {
-                  "align_xy": false,
-                  "align_z": false,
-                  "align_t": false
-                },
-                "description": "Alignment correction options.",
                 "title": "Alignment Corrections"
               },
               "omezarr_options": {
                 "$ref": "#/$defs/OmeZarrOptions",
-                "default": {
-                  "num_levels": 5,
-                  "chunks": {
-                    "c_chunk": 1,
-                    "mode": "Same as FOV",
-                    "t_chunk": 1,
-                    "xy_scaling": "1",
-                    "z_chunk": 10
-                  },
-                  "ngff_version": "0.4",
-                  "table_backend": "anndata"
-                },
-                "description": "Options specific to OME-Zarr writing.",
                 "title": "OME-Zarr Options"
               },
               "temp_json_options": {
                 "$ref": "#/$defs/TempJsonOptions",
-                "default": {
-                  "temp_url": "{zarr_dir}/_tmp_json"
-                },
-                "description": "Options for temporary JSON storage.",
                 "title": "Temporary JSON Options"
               }
             },
@@ -255,34 +211,29 @@
               "mode": {
                 "const": "Fixed Size",
                 "default": "Fixed Size",
-                "description": "mode: Fixed size chunking.",
                 "title": "Mode",
                 "type": "string"
               },
               "xy_chunk": {
                 "default": 4096,
-                "description": "xy_chunk: Chunk size for XY dimensions.",
                 "minimum": 1,
                 "title": "Chunk Size for XY",
                 "type": "integer"
               },
               "z_chunk": {
                 "default": 10,
-                "description": "z_chunk: Chunk size for Z dimension.",
                 "minimum": 1,
                 "title": "Chunk Size for Z",
                 "type": "integer"
               },
               "c_chunk": {
                 "default": 1,
-                "description": "c_chunk: Chunk size for C dimension.",
                 "minimum": 1,
                 "title": "Chunk Size for C",
                 "type": "integer"
               },
               "t_chunk": {
                 "default": 1,
-                "description": "t_chunk: Chunk size for T dimension.",
                 "minimum": 1,
                 "title": "Chunk Size for T",
                 "type": "integer"
@@ -297,33 +248,28 @@
               "mode": {
                 "const": "Same as FOV",
                 "default": "Same as FOV",
-                "description": "Chunking based on FOV size.",
                 "title": "Mode",
                 "type": "string"
               },
               "xy_scaling": {
                 "$ref": "#/$defs/Scalings",
                 "default": "1",
-                "description": "Scaling factor for XY chunk size. If set to 1, chunk size matches\nFOV size. If set to 0.5, chunk size is half the FOV size\n(smaller chunks, more files). If set to 2, chunk size is double the FOV\nsize (larger chunks, less files).",
                 "title": "XY Scaling Factor"
               },
               "z_chunk": {
                 "default": 10,
-                "description": "Chunk size for Z dimension.",
                 "minimum": 1,
                 "title": "Chunk Size for Z",
                 "type": "integer"
               },
               "c_chunk": {
                 "default": 1,
-                "description": "Chunk size for C dimension.",
                 "minimum": 1,
                 "title": "Chunk Size for C",
                 "type": "integer"
               },
               "t_chunk": {
                 "default": 1,
-                "description": "Chunk size for T dimension.",
                 "minimum": 1,
                 "title": "Chunk Size for T",
                 "type": "integer"
@@ -343,13 +289,6 @@
                 "type": "integer"
               },
               "chunks": {
-                "default": {
-                  "mode": "Same as FOV",
-                  "xy_scaling": "1",
-                  "z_chunk": 10,
-                  "c_chunk": 1,
-                  "t_chunk": 1
-                },
                 "discriminator": {
                   "mapping": {
                     "Fixed Size": "#/$defs/FixedSizeChunking",
@@ -399,17 +338,14 @@
             "description": "Pixel size model 2.",
             "properties": {
               "pixelsize": {
-                "description": "Pixel size in micrometers.",
                 "title": "Pixelsize",
                 "type": "number"
               },
               "z_spacing": {
-                "description": "Z spacing in micrometers.",
                 "title": "Z Spacing",
                 "type": "number"
               },
               "t_spacing": {
-                "description": "Time spacing in seconds.",
                 "title": "T Spacing",
                 "type": "number"
               }
@@ -478,38 +414,21 @@
             "description": "Acquisition details for the Olympus ScanR microscope data.",
             "properties": {
               "path": {
-                "description": "Path to the acquisition directory. Should contain MeasurementData.mlf and\nMeasurementDetail.mrf files.",
                 "title": "Path",
                 "type": "string"
               },
               "plate_name": {
-                "description": "Optional custom name for the plate. If not provided, the name will be the acquisition\ndirectory name.",
                 "title": "Plate Name",
                 "type": "string"
               },
               "acquisition_id": {
                 "default": 0,
-                "description": "Acquisition ID, used to identify the acquisition in case of multiple acquisitions.",
                 "minimum": 0,
                 "title": "Acquisition Id",
                 "type": "integer"
               },
               "advanced": {
                 "$ref": "#/$defs/AcquisitionOptions",
-                "default": {
-                  "channels": null,
-                  "pixel_info": null,
-                  "condition_table_path": null,
-                  "axes": null,
-                  "data_type": null,
-                  "stage_corrections": {
-                    "flip_x": false,
-                    "flip_y": false,
-                    "swap_xy": false
-                  },
-                  "filters": []
-                },
-                "description": "Advanced acquisition options.",
                 "title": "Advanced"
               },
               "layout": {
@@ -679,19 +598,16 @@
             "properties": {
               "align_xy": {
                 "default": false,
-                "description": "Whether to align the positions in the XY plane by FOV.\nThis addresses minor imprecision that often occurs during\nimage acquisition.",
                 "title": "Align XY",
                 "type": "boolean"
               },
               "align_z": {
                 "default": false,
-                "description": "Whether to align the positions in the Z axis by FOV.\nThis addresses minor imprecision that often occurs during\nimage acquisition.",
                 "title": "Align Z",
                 "type": "boolean"
               },
               "align_t": {
                 "default": false,
-                "description": "Whether to align the positions in the T axis by FOV.\nThis addresses minor imprecision that often occurs during\nimage acquisition.",
                 "title": "Align T",
                 "type": "boolean"
               }
@@ -741,48 +657,23 @@
               "tiling_mode": {
                 "$ref": "#/$defs/TilingMode",
                 "default": "Auto",
-                "description": "Tiling mode to use during conversion.\n- Auto: Automatically determine if Snap to Grid is possible,\notherwise use Snap to Corners.\n- Snap to Grid: Tile images to fit a regular grid. This is\nonly possible if image positions align to a grid (potentially with overlap).\n- Snap to Corners: Tile images to fit a grid defined by the corner\npositions.\n- Inplace: Write tiles in their original positions without tiling. This\nmay lead to artifacts if microscope stage positions are not precise.\n- No Tiling: Each field of view is written as a single OME-Zarr.",
                 "title": "Tiling Mode"
               },
               "writer_mode": {
                 "$ref": "#/$defs/WriterMode",
                 "default": "By FOV",
-                "description": "Mode for writing data during conversion.\n- By Tile: Write data one tile at a time. This consumes less memory,\nbut may be slower.\n- By Tile (Using Dask): Write tiles in parallel using Dask. This is\nusually faster than writing by tile sequentially, but may consume more\nmemory.\n- By FOV: Write data one field of view at a time. This may the best\ncompromise between speed and memory usage in most cases.\n- By FOV (Using Dask): Write fields of view in parallel using Dask.\nThis is usually faster than writing by FOV sequentially,\nbut may consume more memory.\n- In Memory: Load all data into memory before writing.",
                 "title": "Writer Mode"
               },
               "alignment_correction": {
                 "$ref": "#/$defs/AlignmentCorrections",
-                "default": {
-                  "align_xy": false,
-                  "align_z": false,
-                  "align_t": false
-                },
-                "description": "Alignment correction options.",
                 "title": "Alignment Corrections"
               },
               "omezarr_options": {
                 "$ref": "#/$defs/OmeZarrOptions",
-                "default": {
-                  "num_levels": 5,
-                  "chunks": {
-                    "c_chunk": 1,
-                    "mode": "Same as FOV",
-                    "t_chunk": 1,
-                    "xy_scaling": "1",
-                    "z_chunk": 10
-                  },
-                  "ngff_version": "0.4",
-                  "table_backend": "anndata"
-                },
-                "description": "Options specific to OME-Zarr writing.",
                 "title": "OME-Zarr Options"
               },
               "temp_json_options": {
                 "$ref": "#/$defs/TempJsonOptions",
-                "default": {
-                  "temp_url": "{zarr_dir}/_tmp_json"
-                },
-                "description": "Options for temporary JSON storage.",
                 "title": "Temporary JSON Options"
               }
             },
@@ -795,34 +686,29 @@
               "mode": {
                 "const": "Fixed Size",
                 "default": "Fixed Size",
-                "description": "mode: Fixed size chunking.",
                 "title": "Mode",
                 "type": "string"
               },
               "xy_chunk": {
                 "default": 4096,
-                "description": "xy_chunk: Chunk size for XY dimensions.",
                 "minimum": 1,
                 "title": "Chunk Size for XY",
                 "type": "integer"
               },
               "z_chunk": {
                 "default": 10,
-                "description": "z_chunk: Chunk size for Z dimension.",
                 "minimum": 1,
                 "title": "Chunk Size for Z",
                 "type": "integer"
               },
               "c_chunk": {
                 "default": 1,
-                "description": "c_chunk: Chunk size for C dimension.",
                 "minimum": 1,
                 "title": "Chunk Size for C",
                 "type": "integer"
               },
               "t_chunk": {
                 "default": 1,
-                "description": "t_chunk: Chunk size for T dimension.",
                 "minimum": 1,
                 "title": "Chunk Size for T",
                 "type": "integer"
@@ -837,33 +723,28 @@
               "mode": {
                 "const": "Same as FOV",
                 "default": "Same as FOV",
-                "description": "Chunking based on FOV size.",
                 "title": "Mode",
                 "type": "string"
               },
               "xy_scaling": {
                 "$ref": "#/$defs/Scalings",
                 "default": "1",
-                "description": "Scaling factor for XY chunk size. If set to 1, chunk size matches\nFOV size. If set to 0.5, chunk size is half the FOV size\n(smaller chunks, more files). If set to 2, chunk size is double the FOV\nsize (larger chunks, less files).",
                 "title": "XY Scaling Factor"
               },
               "z_chunk": {
                 "default": 10,
-                "description": "Chunk size for Z dimension.",
                 "minimum": 1,
                 "title": "Chunk Size for Z",
                 "type": "integer"
               },
               "c_chunk": {
                 "default": 1,
-                "description": "Chunk size for C dimension.",
                 "minimum": 1,
                 "title": "Chunk Size for C",
                 "type": "integer"
               },
               "t_chunk": {
                 "default": 1,
-                "description": "Chunk size for T dimension.",
                 "minimum": 1,
                 "title": "Chunk Size for T",
                 "type": "integer"
@@ -883,13 +764,6 @@
                 "type": "integer"
               },
               "chunks": {
-                "default": {
-                  "mode": "Same as FOV",
-                  "xy_scaling": "1",
-                  "z_chunk": 10,
-                  "c_chunk": 1,
-                  "t_chunk": 1
-                },
                 "discriminator": {
                   "mapping": {
                     "Fixed Size": "#/$defs/FixedSizeChunking",
@@ -1033,7 +907,6 @@
             "description": "Acquisition options for conversion.",
             "properties": {
               "channels": {
-                "description": "List of channel information.",
                 "items": {
                   "$ref": "#/$defs/ChannelInfo"
                 },
@@ -1042,37 +915,25 @@
               },
               "pixel_info": {
                 "$ref": "#/$defs/PixelSizeModel",
-                "description": "Pixel size information.",
                 "title": "Pixel Size Information"
               },
               "condition_table_path": {
-                "description": "Optional path to a condition table CSV file.",
                 "title": "Condition Table Path",
                 "type": "string"
               },
               "axes": {
-                "description": "Axes to use for the image data, e.g. \"czyx\".",
                 "title": "Axes",
                 "type": "string"
               },
               "data_type": {
                 "$ref": "#/$defs/DataTypeEnum",
-                "description": "Data type of the image data.",
                 "title": "Data Type"
               },
               "stage_corrections": {
                 "$ref": "#/$defs/StageCorrections",
-                "default": {
-                  "flip_x": false,
-                  "flip_y": false,
-                  "swap_xy": false
-                },
-                "description": "Stage orientation corrections.",
                 "title": "Stage Corrections"
               },
               "filters": {
-                "default": [],
-                "description": "List of filters to apply.",
                 "items": {
                   "discriminator": {
                     "mapping": {
@@ -1107,19 +968,16 @@
             "properties": {
               "align_xy": {
                 "default": false,
-                "description": "Whether to align the positions in the XY plane by FOV.\nThis addresses minor imprecision that often occurs during\nimage acquisition.",
                 "title": "Align XY",
                 "type": "boolean"
               },
               "align_z": {
                 "default": false,
-                "description": "Whether to align the positions in the Z axis by FOV.\nThis addresses minor imprecision that often occurs during\nimage acquisition.",
                 "title": "Align Z",
                 "type": "boolean"
               },
               "align_t": {
                 "default": false,
-                "description": "Whether to align the positions in the T axis by FOV.\nThis addresses minor imprecision that often occurs during\nimage acquisition.",
                 "title": "Align T",
                 "type": "boolean"
               }
@@ -1142,38 +1000,21 @@
             "description": "Acquisition details for the CQ3K microscope data.",
             "properties": {
               "path": {
-                "description": "Path to the acquisition directory. Should contain MeasurementData.mlf and\nMeasurementDetail.mrf files.",
                 "title": "Path",
                 "type": "string"
               },
               "plate_name": {
-                "description": "Optional custom name for the plate. If not provided, the name will be the acquisition\ndirectory name.",
                 "title": "Plate Name",
                 "type": "string"
               },
               "acquisition_id": {
                 "default": 0,
-                "description": "Acquisition ID, used to identify the acquisition in case of multiple acquisitions.",
                 "minimum": 0,
                 "title": "Acquisition Id",
                 "type": "integer"
               },
               "advanced": {
                 "$ref": "#/$defs/AcquisitionOptions",
-                "default": {
-                  "channels": null,
-                  "pixel_info": null,
-                  "condition_table_path": null,
-                  "axes": null,
-                  "data_type": null,
-                  "stage_corrections": {
-                    "flip_x": false,
-                    "flip_y": false,
-                    "swap_xy": false
-                  },
-                  "filters": []
-                },
-                "description": "Advanced acquisition options.",
                 "title": "Advanced"
               }
             },
@@ -1187,19 +1028,16 @@
             "description": "Channel information.",
             "properties": {
               "channel_label": {
-                "description": "Label of the channel.",
                 "title": "Channel Label",
                 "type": "string"
               },
               "wavelength_id": {
-                "description": "The wavelength ID of the channel.\nThis field can be used in some tasks as alternative to channel_label,\ne.g. for multiplexed acquisitions it can be used for applying illumination\ncorrection based on wavelength ID instead of channel name.",
                 "title": "Wavelength Id",
                 "type": "string"
               },
               "colors": {
                 "$ref": "#/$defs/DefaultColors",
                 "default": "Blue (0000FF)",
-                "description": "The color associated with the channel, e.g. for visualization purposes.",
                 "title": "Colors"
               }
             },
@@ -1216,48 +1054,23 @@
               "tiling_mode": {
                 "$ref": "#/$defs/TilingMode",
                 "default": "Auto",
-                "description": "Tiling mode to use during conversion.\n- Auto: Automatically determine if Snap to Grid is possible,\notherwise use Snap to Corners.\n- Snap to Grid: Tile images to fit a regular grid. This is\nonly possible if image positions align to a grid (potentially with overlap).\n- Snap to Corners: Tile images to fit a grid defined by the corner\npositions.\n- Inplace: Write tiles in their original positions without tiling. This\nmay lead to artifacts if microscope stage positions are not precise.\n- No Tiling: Each field of view is written as a single OME-Zarr.",
                 "title": "Tiling Mode"
               },
               "writer_mode": {
                 "$ref": "#/$defs/WriterMode",
                 "default": "By FOV",
-                "description": "Mode for writing data during conversion.\n- By Tile: Write data one tile at a time. This consumes less memory,\nbut may be slower.\n- By Tile (Using Dask): Write tiles in parallel using Dask. This is\nusually faster than writing by tile sequentially, but may consume more\nmemory.\n- By FOV: Write data one field of view at a time. This may the best\ncompromise between speed and memory usage in most cases.\n- By FOV (Using Dask): Write fields of view in parallel using Dask.\nThis is usually faster than writing by FOV sequentially,\nbut may consume more memory.\n- In Memory: Load all data into memory before writing.",
                 "title": "Writer Mode"
               },
               "alignment_correction": {
                 "$ref": "#/$defs/AlignmentCorrections",
-                "default": {
-                  "align_xy": false,
-                  "align_z": false,
-                  "align_t": false
-                },
-                "description": "Alignment correction options.",
                 "title": "Alignment Corrections"
               },
               "omezarr_options": {
                 "$ref": "#/$defs/OmeZarrOptions",
-                "default": {
-                  "num_levels": 5,
-                  "chunks": {
-                    "c_chunk": 1,
-                    "mode": "Same as FOV",
-                    "t_chunk": 1,
-                    "xy_scaling": "1",
-                    "z_chunk": 10
-                  },
-                  "ngff_version": "0.4",
-                  "table_backend": "anndata"
-                },
-                "description": "Options specific to OME-Zarr writing.",
                 "title": "OME-Zarr Options"
               },
               "temp_json_options": {
                 "$ref": "#/$defs/TempJsonOptions",
-                "default": {
-                  "temp_url": "{zarr_dir}/_tmp_json"
-                },
-                "description": "Options for temporary JSON storage.",
                 "title": "Temporary JSON Options"
               }
             },
@@ -1305,34 +1118,29 @@
               "mode": {
                 "const": "Fixed Size",
                 "default": "Fixed Size",
-                "description": "mode: Fixed size chunking.",
                 "title": "Mode",
                 "type": "string"
               },
               "xy_chunk": {
                 "default": 4096,
-                "description": "xy_chunk: Chunk size for XY dimensions.",
                 "minimum": 1,
                 "title": "Chunk Size for XY",
                 "type": "integer"
               },
               "z_chunk": {
                 "default": 10,
-                "description": "z_chunk: Chunk size for Z dimension.",
                 "minimum": 1,
                 "title": "Chunk Size for Z",
                 "type": "integer"
               },
               "c_chunk": {
                 "default": 1,
-                "description": "c_chunk: Chunk size for C dimension.",
                 "minimum": 1,
                 "title": "Chunk Size for C",
                 "type": "integer"
               },
               "t_chunk": {
                 "default": 1,
-                "description": "t_chunk: Chunk size for T dimension.",
                 "minimum": 1,
                 "title": "Chunk Size for T",
                 "type": "integer"
@@ -1347,33 +1155,28 @@
               "mode": {
                 "const": "Same as FOV",
                 "default": "Same as FOV",
-                "description": "Chunking based on FOV size.",
                 "title": "Mode",
                 "type": "string"
               },
               "xy_scaling": {
                 "$ref": "#/$defs/Scalings",
                 "default": "1",
-                "description": "Scaling factor for XY chunk size. If set to 1, chunk size matches\nFOV size. If set to 0.5, chunk size is half the FOV size\n(smaller chunks, more files). If set to 2, chunk size is double the FOV\nsize (larger chunks, less files).",
                 "title": "XY Scaling Factor"
               },
               "z_chunk": {
                 "default": 10,
-                "description": "Chunk size for Z dimension.",
                 "minimum": 1,
                 "title": "Chunk Size for Z",
                 "type": "integer"
               },
               "c_chunk": {
                 "default": 1,
-                "description": "Chunk size for C dimension.",
                 "minimum": 1,
                 "title": "Chunk Size for C",
                 "type": "integer"
               },
               "t_chunk": {
                 "default": 1,
-                "description": "Chunk size for T dimension.",
                 "minimum": 1,
                 "title": "Chunk Size for T",
                 "type": "integer"
@@ -1393,13 +1196,6 @@
                 "type": "integer"
               },
               "chunks": {
-                "default": {
-                  "mode": "Same as FOV",
-                  "xy_scaling": "1",
-                  "z_chunk": 10,
-                  "c_chunk": 1,
-                  "t_chunk": 1
-                },
                 "discriminator": {
                   "mapping": {
                     "Fixed Size": "#/$defs/FixedSizeChunking",
@@ -1449,17 +1245,14 @@
             "description": "Pixel size model 2.",
             "properties": {
               "pixelsize": {
-                "description": "Pixel size in micrometers.",
                 "title": "Pixelsize",
                 "type": "number"
               },
               "z_spacing": {
-                "description": "Z spacing in micrometers.",
                 "title": "Z Spacing",
                 "type": "number"
               },
               "t_spacing": {
-                "description": "Time spacing in seconds.",
                 "title": "T Spacing",
                 "type": "number"
               }
@@ -1673,19 +1466,16 @@
             "properties": {
               "align_xy": {
                 "default": false,
-                "description": "Whether to align the positions in the XY plane by FOV.\nThis addresses minor imprecision that often occurs during\nimage acquisition.",
                 "title": "Align XY",
                 "type": "boolean"
               },
               "align_z": {
                 "default": false,
-                "description": "Whether to align the positions in the Z axis by FOV.\nThis addresses minor imprecision that often occurs during\nimage acquisition.",
                 "title": "Align Z",
                 "type": "boolean"
               },
               "align_t": {
                 "default": false,
-                "description": "Whether to align the positions in the T axis by FOV.\nThis addresses minor imprecision that often occurs during\nimage acquisition.",
                 "title": "Align T",
                 "type": "boolean"
               }
@@ -1735,48 +1525,23 @@
               "tiling_mode": {
                 "$ref": "#/$defs/TilingMode",
                 "default": "Auto",
-                "description": "Tiling mode to use during conversion.\n- Auto: Automatically determine if Snap to Grid is possible,\notherwise use Snap to Corners.\n- Snap to Grid: Tile images to fit a regular grid. This is\nonly possible if image positions align to a grid (potentially with overlap).\n- Snap to Corners: Tile images to fit a grid defined by the corner\npositions.\n- Inplace: Write tiles in their original positions without tiling. This\nmay lead to artifacts if microscope stage positions are not precise.\n- No Tiling: Each field of view is written as a single OME-Zarr.",
                 "title": "Tiling Mode"
               },
               "writer_mode": {
                 "$ref": "#/$defs/WriterMode",
                 "default": "By FOV",
-                "description": "Mode for writing data during conversion.\n- By Tile: Write data one tile at a time. This consumes less memory,\nbut may be slower.\n- By Tile (Using Dask): Write tiles in parallel using Dask. This is\nusually faster than writing by tile sequentially, but may consume more\nmemory.\n- By FOV: Write data one field of view at a time. This may the best\ncompromise between speed and memory usage in most cases.\n- By FOV (Using Dask): Write fields of view in parallel using Dask.\nThis is usually faster than writing by FOV sequentially,\nbut may consume more memory.\n- In Memory: Load all data into memory before writing.",
                 "title": "Writer Mode"
               },
               "alignment_correction": {
                 "$ref": "#/$defs/AlignmentCorrections",
-                "default": {
-                  "align_xy": false,
-                  "align_z": false,
-                  "align_t": false
-                },
-                "description": "Alignment correction options.",
                 "title": "Alignment Corrections"
               },
               "omezarr_options": {
                 "$ref": "#/$defs/OmeZarrOptions",
-                "default": {
-                  "num_levels": 5,
-                  "chunks": {
-                    "c_chunk": 1,
-                    "mode": "Same as FOV",
-                    "t_chunk": 1,
-                    "xy_scaling": "1",
-                    "z_chunk": 10
-                  },
-                  "ngff_version": "0.4",
-                  "table_backend": "anndata"
-                },
-                "description": "Options specific to OME-Zarr writing.",
                 "title": "OME-Zarr Options"
               },
               "temp_json_options": {
                 "$ref": "#/$defs/TempJsonOptions",
-                "default": {
-                  "temp_url": "{zarr_dir}/_tmp_json"
-                },
-                "description": "Options for temporary JSON storage.",
                 "title": "Temporary JSON Options"
               }
             },
@@ -1789,34 +1554,29 @@
               "mode": {
                 "const": "Fixed Size",
                 "default": "Fixed Size",
-                "description": "mode: Fixed size chunking.",
                 "title": "Mode",
                 "type": "string"
               },
               "xy_chunk": {
                 "default": 4096,
-                "description": "xy_chunk: Chunk size for XY dimensions.",
                 "minimum": 1,
                 "title": "Chunk Size for XY",
                 "type": "integer"
               },
               "z_chunk": {
                 "default": 10,
-                "description": "z_chunk: Chunk size for Z dimension.",
                 "minimum": 1,
                 "title": "Chunk Size for Z",
                 "type": "integer"
               },
               "c_chunk": {
                 "default": 1,
-                "description": "c_chunk: Chunk size for C dimension.",
                 "minimum": 1,
                 "title": "Chunk Size for C",
                 "type": "integer"
               },
               "t_chunk": {
                 "default": 1,
-                "description": "t_chunk: Chunk size for T dimension.",
                 "minimum": 1,
                 "title": "Chunk Size for T",
                 "type": "integer"
@@ -1831,33 +1591,28 @@
               "mode": {
                 "const": "Same as FOV",
                 "default": "Same as FOV",
-                "description": "Chunking based on FOV size.",
                 "title": "Mode",
                 "type": "string"
               },
               "xy_scaling": {
                 "$ref": "#/$defs/Scalings",
                 "default": "1",
-                "description": "Scaling factor for XY chunk size. If set to 1, chunk size matches\nFOV size. If set to 0.5, chunk size is half the FOV size\n(smaller chunks, more files). If set to 2, chunk size is double the FOV\nsize (larger chunks, less files).",
                 "title": "XY Scaling Factor"
               },
               "z_chunk": {
                 "default": 10,
-                "description": "Chunk size for Z dimension.",
                 "minimum": 1,
                 "title": "Chunk Size for Z",
                 "type": "integer"
               },
               "c_chunk": {
                 "default": 1,
-                "description": "Chunk size for C dimension.",
                 "minimum": 1,
                 "title": "Chunk Size for C",
                 "type": "integer"
               },
               "t_chunk": {
                 "default": 1,
-                "description": "Chunk size for T dimension.",
                 "minimum": 1,
                 "title": "Chunk Size for T",
                 "type": "integer"
@@ -1877,13 +1632,6 @@
                 "type": "integer"
               },
               "chunks": {
-                "default": {
-                  "mode": "Same as FOV",
-                  "xy_scaling": "1",
-                  "z_chunk": 10,
-                  "c_chunk": 1,
-                  "t_chunk": 1
-                },
                 "discriminator": {
                   "mapping": {
                     "Fixed Size": "#/$defs/FixedSizeChunking",
@@ -2026,7 +1774,6 @@
             "description": "Acquisition options for conversion.",
             "properties": {
               "channels": {
-                "description": "List of channel information.",
                 "items": {
                   "$ref": "#/$defs/ChannelInfo"
                 },
@@ -2035,37 +1782,25 @@
               },
               "pixel_info": {
                 "$ref": "#/$defs/PixelSizeModel",
-                "description": "Pixel size information.",
                 "title": "Pixel Size Information"
               },
               "condition_table_path": {
-                "description": "Optional path to a condition table CSV file.",
                 "title": "Condition Table Path",
                 "type": "string"
               },
               "axes": {
-                "description": "Axes to use for the image data, e.g. \"czyx\".",
                 "title": "Axes",
                 "type": "string"
               },
               "data_type": {
                 "$ref": "#/$defs/DataTypeEnum",
-                "description": "Data type of the image data.",
                 "title": "Data Type"
               },
               "stage_corrections": {
                 "$ref": "#/$defs/StageCorrections",
-                "default": {
-                  "flip_x": false,
-                  "flip_y": false,
-                  "swap_xy": false
-                },
-                "description": "Stage orientation corrections.",
                 "title": "Stage Corrections"
               },
               "filters": {
-                "default": [],
-                "description": "List of filters to apply.",
                 "items": {
                   "discriminator": {
                     "mapping": {
@@ -2100,19 +1835,16 @@
             "properties": {
               "align_xy": {
                 "default": false,
-                "description": "Whether to align the positions in the XY plane by FOV.\nThis addresses minor imprecision that often occurs during\nimage acquisition.",
                 "title": "Align XY",
                 "type": "boolean"
               },
               "align_z": {
                 "default": false,
-                "description": "Whether to align the positions in the Z axis by FOV.\nThis addresses minor imprecision that often occurs during\nimage acquisition.",
                 "title": "Align Z",
                 "type": "boolean"
               },
               "align_t": {
                 "default": false,
-                "description": "Whether to align the positions in the T axis by FOV.\nThis addresses minor imprecision that often occurs during\nimage acquisition.",
                 "title": "Align T",
                 "type": "boolean"
               }
@@ -2135,19 +1867,16 @@
             "description": "Channel information.",
             "properties": {
               "channel_label": {
-                "description": "Label of the channel.",
                 "title": "Channel Label",
                 "type": "string"
               },
               "wavelength_id": {
-                "description": "The wavelength ID of the channel.\nThis field can be used in some tasks as alternative to channel_label,\ne.g. for multiplexed acquisitions it can be used for applying illumination\ncorrection based on wavelength ID instead of channel name.",
                 "title": "Wavelength Id",
                 "type": "string"
               },
               "colors": {
                 "$ref": "#/$defs/DefaultColors",
                 "default": "Blue (0000FF)",
-                "description": "The color associated with the channel, e.g. for visualization purposes.",
                 "title": "Colors"
               }
             },
@@ -2164,48 +1893,23 @@
               "tiling_mode": {
                 "$ref": "#/$defs/TilingMode",
                 "default": "Auto",
-                "description": "Tiling mode to use during conversion.\n- Auto: Automatically determine if Snap to Grid is possible,\notherwise use Snap to Corners.\n- Snap to Grid: Tile images to fit a regular grid. This is\nonly possible if image positions align to a grid (potentially with overlap).\n- Snap to Corners: Tile images to fit a grid defined by the corner\npositions.\n- Inplace: Write tiles in their original positions without tiling. This\nmay lead to artifacts if microscope stage positions are not precise.\n- No Tiling: Each field of view is written as a single OME-Zarr.",
                 "title": "Tiling Mode"
               },
               "writer_mode": {
                 "$ref": "#/$defs/WriterMode",
                 "default": "By FOV",
-                "description": "Mode for writing data during conversion.\n- By Tile: Write data one tile at a time. This consumes less memory,\nbut may be slower.\n- By Tile (Using Dask): Write tiles in parallel using Dask. This is\nusually faster than writing by tile sequentially, but may consume more\nmemory.\n- By FOV: Write data one field of view at a time. This may the best\ncompromise between speed and memory usage in most cases.\n- By FOV (Using Dask): Write fields of view in parallel using Dask.\nThis is usually faster than writing by FOV sequentially,\nbut may consume more memory.\n- In Memory: Load all data into memory before writing.",
                 "title": "Writer Mode"
               },
               "alignment_correction": {
                 "$ref": "#/$defs/AlignmentCorrections",
-                "default": {
-                  "align_xy": false,
-                  "align_z": false,
-                  "align_t": false
-                },
-                "description": "Alignment correction options.",
                 "title": "Alignment Corrections"
               },
               "omezarr_options": {
                 "$ref": "#/$defs/OmeZarrOptions",
-                "default": {
-                  "num_levels": 5,
-                  "chunks": {
-                    "c_chunk": 1,
-                    "mode": "Same as FOV",
-                    "t_chunk": 1,
-                    "xy_scaling": "1",
-                    "z_chunk": 10
-                  },
-                  "ngff_version": "0.4",
-                  "table_backend": "anndata"
-                },
-                "description": "Options specific to OME-Zarr writing.",
                 "title": "OME-Zarr Options"
               },
               "temp_json_options": {
                 "$ref": "#/$defs/TempJsonOptions",
-                "default": {
-                  "temp_url": "{zarr_dir}/_tmp_json"
-                },
-                "description": "Options for temporary JSON storage.",
                 "title": "Temporary JSON Options"
               }
             },
@@ -2253,34 +1957,29 @@
               "mode": {
                 "const": "Fixed Size",
                 "default": "Fixed Size",
-                "description": "mode: Fixed size chunking.",
                 "title": "Mode",
                 "type": "string"
               },
               "xy_chunk": {
                 "default": 4096,
-                "description": "xy_chunk: Chunk size for XY dimensions.",
                 "minimum": 1,
                 "title": "Chunk Size for XY",
                 "type": "integer"
               },
               "z_chunk": {
                 "default": 10,
-                "description": "z_chunk: Chunk size for Z dimension.",
                 "minimum": 1,
                 "title": "Chunk Size for Z",
                 "type": "integer"
               },
               "c_chunk": {
                 "default": 1,
-                "description": "c_chunk: Chunk size for C dimension.",
                 "minimum": 1,
                 "title": "Chunk Size for C",
                 "type": "integer"
               },
               "t_chunk": {
                 "default": 1,
-                "description": "t_chunk: Chunk size for T dimension.",
                 "minimum": 1,
                 "title": "Chunk Size for T",
                 "type": "integer"
@@ -2295,33 +1994,28 @@
               "mode": {
                 "const": "Same as FOV",
                 "default": "Same as FOV",
-                "description": "Chunking based on FOV size.",
                 "title": "Mode",
                 "type": "string"
               },
               "xy_scaling": {
                 "$ref": "#/$defs/Scalings",
                 "default": "1",
-                "description": "Scaling factor for XY chunk size. If set to 1, chunk size matches\nFOV size. If set to 0.5, chunk size is half the FOV size\n(smaller chunks, more files). If set to 2, chunk size is double the FOV\nsize (larger chunks, less files).",
                 "title": "XY Scaling Factor"
               },
               "z_chunk": {
                 "default": 10,
-                "description": "Chunk size for Z dimension.",
                 "minimum": 1,
                 "title": "Chunk Size for Z",
                 "type": "integer"
               },
               "c_chunk": {
                 "default": 1,
-                "description": "Chunk size for C dimension.",
                 "minimum": 1,
                 "title": "Chunk Size for C",
                 "type": "integer"
               },
               "t_chunk": {
                 "default": 1,
-                "description": "Chunk size for T dimension.",
                 "minimum": 1,
                 "title": "Chunk Size for T",
                 "type": "integer"
@@ -2341,13 +2035,6 @@
                 "type": "integer"
               },
               "chunks": {
-                "default": {
-                  "mode": "Same as FOV",
-                  "xy_scaling": "1",
-                  "z_chunk": 10,
-                  "c_chunk": 1,
-                  "t_chunk": 1
-                },
                 "discriminator": {
                   "mapping": {
                     "Fixed Size": "#/$defs/FixedSizeChunking",
@@ -2387,38 +2074,21 @@
             "description": "Acquisition details for the Operetta microscope data.",
             "properties": {
               "path": {
-                "description": "Path to the acquisition directory. Should contain MeasurementData.mlf and\nMeasurementDetail.mrf files.",
                 "title": "Path",
                 "type": "string"
               },
               "plate_name": {
-                "description": "Optional custom name for the plate. If not provided, the name will be the acquisition\ndirectory name.",
                 "title": "Plate Name",
                 "type": "string"
               },
               "acquisition_id": {
                 "default": 0,
-                "description": "Acquisition ID, used to identify the acquisition in case of multiple acquisitions.",
                 "minimum": 0,
                 "title": "Acquisition Id",
                 "type": "integer"
               },
               "advanced": {
                 "$ref": "#/$defs/AcquisitionOptions",
-                "default": {
-                  "channels": null,
-                  "pixel_info": null,
-                  "condition_table_path": null,
-                  "axes": null,
-                  "data_type": null,
-                  "stage_corrections": {
-                    "flip_x": false,
-                    "flip_y": false,
-                    "swap_xy": false
-                  },
-                  "filters": []
-                },
-                "description": "Advanced acquisition options.",
                 "title": "Advanced"
               }
             },
@@ -2442,17 +2112,14 @@
             "description": "Pixel size model 2.",
             "properties": {
               "pixelsize": {
-                "description": "Pixel size in micrometers.",
                 "title": "Pixelsize",
                 "type": "number"
               },
               "z_spacing": {
-                "description": "Z spacing in micrometers.",
                 "title": "Z Spacing",
                 "type": "number"
               },
               "t_spacing": {
-                "description": "Time spacing in seconds.",
                 "title": "T Spacing",
                 "type": "number"
               }
@@ -2666,19 +2333,16 @@
             "properties": {
               "align_xy": {
                 "default": false,
-                "description": "Whether to align the positions in the XY plane by FOV.\nThis addresses minor imprecision that often occurs during\nimage acquisition.",
                 "title": "Align XY",
                 "type": "boolean"
               },
               "align_z": {
                 "default": false,
-                "description": "Whether to align the positions in the Z axis by FOV.\nThis addresses minor imprecision that often occurs during\nimage acquisition.",
                 "title": "Align Z",
                 "type": "boolean"
               },
               "align_t": {
                 "default": false,
-                "description": "Whether to align the positions in the T axis by FOV.\nThis addresses minor imprecision that often occurs during\nimage acquisition.",
                 "title": "Align T",
                 "type": "boolean"
               }
@@ -2728,48 +2392,23 @@
               "tiling_mode": {
                 "$ref": "#/$defs/TilingMode",
                 "default": "Auto",
-                "description": "Tiling mode to use during conversion.\n- Auto: Automatically determine if Snap to Grid is possible,\notherwise use Snap to Corners.\n- Snap to Grid: Tile images to fit a regular grid. This is\nonly possible if image positions align to a grid (potentially with overlap).\n- Snap to Corners: Tile images to fit a grid defined by the corner\npositions.\n- Inplace: Write tiles in their original positions without tiling. This\nmay lead to artifacts if microscope stage positions are not precise.\n- No Tiling: Each field of view is written as a single OME-Zarr.",
                 "title": "Tiling Mode"
               },
               "writer_mode": {
                 "$ref": "#/$defs/WriterMode",
                 "default": "By FOV",
-                "description": "Mode for writing data during conversion.\n- By Tile: Write data one tile at a time. This consumes less memory,\nbut may be slower.\n- By Tile (Using Dask): Write tiles in parallel using Dask. This is\nusually faster than writing by tile sequentially, but may consume more\nmemory.\n- By FOV: Write data one field of view at a time. This may the best\ncompromise between speed and memory usage in most cases.\n- By FOV (Using Dask): Write fields of view in parallel using Dask.\nThis is usually faster than writing by FOV sequentially,\nbut may consume more memory.\n- In Memory: Load all data into memory before writing.",
                 "title": "Writer Mode"
               },
               "alignment_correction": {
                 "$ref": "#/$defs/AlignmentCorrections",
-                "default": {
-                  "align_xy": false,
-                  "align_z": false,
-                  "align_t": false
-                },
-                "description": "Alignment correction options.",
                 "title": "Alignment Corrections"
               },
               "omezarr_options": {
                 "$ref": "#/$defs/OmeZarrOptions",
-                "default": {
-                  "num_levels": 5,
-                  "chunks": {
-                    "c_chunk": 1,
-                    "mode": "Same as FOV",
-                    "t_chunk": 1,
-                    "xy_scaling": "1",
-                    "z_chunk": 10
-                  },
-                  "ngff_version": "0.4",
-                  "table_backend": "anndata"
-                },
-                "description": "Options specific to OME-Zarr writing.",
                 "title": "OME-Zarr Options"
               },
               "temp_json_options": {
                 "$ref": "#/$defs/TempJsonOptions",
-                "default": {
-                  "temp_url": "{zarr_dir}/_tmp_json"
-                },
-                "description": "Options for temporary JSON storage.",
                 "title": "Temporary JSON Options"
               }
             },
@@ -2782,34 +2421,29 @@
               "mode": {
                 "const": "Fixed Size",
                 "default": "Fixed Size",
-                "description": "mode: Fixed size chunking.",
                 "title": "Mode",
                 "type": "string"
               },
               "xy_chunk": {
                 "default": 4096,
-                "description": "xy_chunk: Chunk size for XY dimensions.",
                 "minimum": 1,
                 "title": "Chunk Size for XY",
                 "type": "integer"
               },
               "z_chunk": {
                 "default": 10,
-                "description": "z_chunk: Chunk size for Z dimension.",
                 "minimum": 1,
                 "title": "Chunk Size for Z",
                 "type": "integer"
               },
               "c_chunk": {
                 "default": 1,
-                "description": "c_chunk: Chunk size for C dimension.",
                 "minimum": 1,
                 "title": "Chunk Size for C",
                 "type": "integer"
               },
               "t_chunk": {
                 "default": 1,
-                "description": "t_chunk: Chunk size for T dimension.",
                 "minimum": 1,
                 "title": "Chunk Size for T",
                 "type": "integer"
@@ -2824,33 +2458,28 @@
               "mode": {
                 "const": "Same as FOV",
                 "default": "Same as FOV",
-                "description": "Chunking based on FOV size.",
                 "title": "Mode",
                 "type": "string"
               },
               "xy_scaling": {
                 "$ref": "#/$defs/Scalings",
                 "default": "1",
-                "description": "Scaling factor for XY chunk size. If set to 1, chunk size matches\nFOV size. If set to 0.5, chunk size is half the FOV size\n(smaller chunks, more files). If set to 2, chunk size is double the FOV\nsize (larger chunks, less files).",
                 "title": "XY Scaling Factor"
               },
               "z_chunk": {
                 "default": 10,
-                "description": "Chunk size for Z dimension.",
                 "minimum": 1,
                 "title": "Chunk Size for Z",
                 "type": "integer"
               },
               "c_chunk": {
                 "default": 1,
-                "description": "Chunk size for C dimension.",
                 "minimum": 1,
                 "title": "Chunk Size for C",
                 "type": "integer"
               },
               "t_chunk": {
                 "default": 1,
-                "description": "Chunk size for T dimension.",
                 "minimum": 1,
                 "title": "Chunk Size for T",
                 "type": "integer"
@@ -2870,13 +2499,6 @@
                 "type": "integer"
               },
               "chunks": {
-                "default": {
-                  "mode": "Same as FOV",
-                  "xy_scaling": "1",
-                  "z_chunk": 10,
-                  "c_chunk": 1,
-                  "t_chunk": 1
-                },
                 "discriminator": {
                   "mapping": {
                     "Fixed Size": "#/$defs/FixedSizeChunking",
